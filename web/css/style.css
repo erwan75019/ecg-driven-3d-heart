@@ -1,0 +1,81 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #1f2937;
+}
+
+header {
+    background-color: white;
+    text-align: center;
+    padding: 30px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+header h1 {
+    margin-bottom: 8px;
+    font-size: 28px;
+}
+
+header p {
+    color: #6b7280;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+section {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+section h2 {
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+#ecg-container,
+#heart-container {
+    height: 350px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px dashed #aaa;
+    border-radius: 6px;
+
+    color: #777;
+}
+
+#cardiac-phase {
+    grid-column: 1 / -1;
+}
+
+#phase-display {
+    color: #6b7280;
+}
+
+@media (max-width: 800px) {
+    main {
+        grid-template-columns: 1fr;
+    }
+
+    #cardiac-phase {
+        grid-column: auto;
+    }
+}
