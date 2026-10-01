@@ -33,7 +33,15 @@
         </section>
 
         <section id="heart-section">
-            <h2>3D Heart</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin: 0;">3D Heart</h2>
+                <!-- Conteneur des 3 boutons stylisés alignés avec le texte -->
+                <div style="display: flex; gap: 8px;">
+                    <button id="start-btn" style="padding: 5px 12px; background-color: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Start</button>
+                    <button id="pause-btn" style="padding: 5px 12px; background-color: #ca8a04; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Pause</button>
+                    <button id="restart-btn" style="padding: 5px 12px; background-color: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Restart</button>
+                </div>
+            </div>
 
             <div id="heart-container">
                 <p>3D heart visualization will appear here.</p>
@@ -47,7 +55,14 @@
 
     </main>
 
-    <script src="js/main.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+    <script type="module" src="js/main.js"></script>
 
 </body>
 </html>
