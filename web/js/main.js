@@ -253,6 +253,7 @@ function updateInterface() {
     timeDisplay.textContent = formatTime(currentTime);
     phaseDisplay.textContent = phase.name;
     phaseCode.textContent = phase.code;
+    phaseCode.dataset.phase = phase.key;
     phaseDescription.textContent = phase.description;
     heartContainer.dataset.phase = phase.key;
 

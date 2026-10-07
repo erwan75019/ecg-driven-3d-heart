@@ -649,8 +649,8 @@ select {
     height: 34px;
     place-items: center;
     border-radius: 10px;
-    background: #e9f5f1;
-    color: var(--mint-dark);
+    background: #f0f4f2;
+    color: var(--night);
     font-size: 0.76rem;
     font-weight: 850;
 }
@@ -676,18 +676,6 @@ select {
     font-size: 0.65rem;
     font-weight: 850;
     text-align: center;
-}
-
-.phase-legend__p {
-    background: rgba(100, 203, 213, 0.35);
-}
-
-.phase-legend__qrs {
-    background: rgba(238, 116, 95, 0.35);
-}
-
-.phase-legend__t {
-    background: rgba(242, 184, 75, 0.4);
 }
 
 .dataset-name {
@@ -797,18 +785,42 @@ select {
     font-weight: 850;
 }
 
-.learning-item--p > span {
+.learning-item--p > span,
+#phase-code[data-phase="p"],
+.phase-legend__p {
     background: rgba(100, 203, 213, 0.2);
+}
+
+.learning-item--p > span,
+#phase-code[data-phase="p"],
+span.phase-legend__p,
+#heart-container[data-phase="p"] + .phase-readout #phase-display {
     color: #187b85;
 }
 
-.learning-item--qrs > span {
+.learning-item--qrs > span,
+#phase-code[data-phase="qrs"],
+.phase-legend__qrs {
     background: rgba(238, 116, 95, 0.16);
+}
+
+.learning-item--qrs > span,
+#phase-code[data-phase="qrs"],
+span.phase-legend__qrs,
+#heart-container[data-phase="qrs"] + .phase-readout #phase-display {
     color: #b94734;
 }
 
-.learning-item--t > span {
+.learning-item--t > span,
+#phase-code[data-phase="t"],
+.phase-legend__t {
     background: rgba(242, 184, 75, 0.2);
+}
+
+.learning-item--t > span,
+#phase-code[data-phase="t"],
+span.phase-legend__t,
+#heart-container[data-phase="t"] + .phase-readout #phase-display {
     color: #9a6810;
 }
 
