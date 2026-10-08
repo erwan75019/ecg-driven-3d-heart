@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -265,24 +266,23 @@ Bande passante & @LOW@--@HIGH@ Hz\\
 
 def compile_latex_report(report_path, output_directory, engine):
     executable = shutil.which(engine)
-    if executable is None and engine == "tectonic":
-        local_app_data = Path.home() / "AppData" / "Local"
-        user_install = local_app_data / "Programs" / "Tectonic" / "tectonic.exe"
-        if user_install.is_file():
-            executable = str(user_install)
+    if executable is None and engine == "tectonic" and os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            user_install = (
+                Path(local_app_data) / "Programs" / "Tectonic" / "tectonic.exe"
+            )
+            if user_install.is_file():
+                executable = str(user_install)
 
     if executable is None:
-        install_hint = (
-            "Download the Windows x86_64 MSVC archive from "
-            "https://github.com/tectonic-typesetting/tectonic/releases/latest, "
-            "extract tectonic.exe to %LOCALAPPDATA%\\Programs\\Tectonic, "
-            "then reopen PowerShell."
-            if engine == "tectonic"
-            else "Install pdflatex and make sure its directory is on PATH."
+        print(
+            f"PDF not compiled: '{engine}' was not found. "
+            "The JSON, comparison plot, and LaTeX report were generated. "
+            "To get a PDF without installing a LaTeX compiler, upload the "
+            "report .tex file and its matching .png image to Overleaf."
         )
-        raise FileNotFoundError(
-            f"'{engine}' was not found. {install_hint}"
-        )
+        return False
 
     if engine == "tectonic":
         command = [
@@ -302,6 +302,7 @@ def compile_latex_report(report_path, output_directory, engine):
         ]
 
     subprocess.run(command, cwd=output_directory, check=True)
+    return True
 
 
 def main():
@@ -369,8 +370,10 @@ def main():
         f"samples: {raw_signal.size}"
     )
     if arguments.compile_pdf:
-        compile_latex_report(report_path, OUTPUT_DIRECTORY, arguments.latex_engine)
-        print(f"PDF report saved to: {report_path.with_suffix('.pdf')}")
+        if compile_latex_report(
+            report_path, OUTPUT_DIRECTORY, arguments.latex_engine
+        ):
+            print(f"PDF report saved to: {report_path.with_suffix('.pdf')}")
 
 
 if __name__ == "__main__":

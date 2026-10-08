@@ -16,35 +16,59 @@ ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web
 - `signal-processing/` : scripts de lecture et d'export des données LUDB.
 
 ## Filtrage ECG et rapport
-Depuis la racine du projet, après installation des dépendances de
-`signal-processing/requirements.txt` :
+### Installation rapide
 
-```powershell
-python .\signal-processing\filter_ecg.py --record 1
+Dans un terminal, placez-vous à la racine du dépôt et installez les dépendances
+Python. Ces commandes sont à exécuter dans PowerShell sous Windows, ou dans un
+terminal sous Linux et macOS :
+
+```text
+python -m pip install -r signal-processing/requirements.txt
 ```
 
-Le script enregistre le signal filtré, le graphique comparatif et un rapport
-LaTeX dans `data/processed/`. Pour générer également le PDF avec
-[Tectonic](https://tectonic-typesetting.github.io/) (compilateur léger, à
-installer séparément) :
+Si votre système utilise la commande `python3` (courant sous Linux/macOS),
+remplacez `python` par `python3`. Pour éviter d'installer les dépendances dans
+votre environnement Python global, vous pouvez créer un environnement virtuel :
 
-```powershell
-python .\signal-processing\filter_ecg.py --record 1 --compile-pdf
+```text
+# Windows (PowerShell)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r signal-processing/requirements.txt
+
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r signal-processing/requirements.txt
 ```
 
-Si `pdflatex` est déjà installé, il peut être utilisé à la place :
+### Générer le rapport
 
-```powershell
-python .\signal-processing\filter_ecg.py --record 1 --compile-pdf --latex-engine pdflatex
+Depuis la racine du dépôt, lancez le script (utilisez `python3` à la place de
+`python` si nécessaire) :
+
+```text
+python signal-processing/filter_ecg.py --record 1
 ```
 
-Pour installer Tectonic sous Windows, téléchargez l'archive x86_64 MSVC
-depuis la [page des dernières versions](https://github.com/tectonic-typesetting/tectonic/releases/latest),
-extrayez `tectonic.exe` dans `%LOCALAPPDATA%\Programs\Tectonic`, puis
-relancez PowerShell. Le script détecte automatiquement ce chemin, même s'il
-n'est pas dans `PATH`.
+Le script enregistre le signal filtré, le graphique comparatif et le rapport
+LaTeX dans `data/processed/`. La compilation PDF locale est facultative :
+ajoutez `--compile-pdf` pour utiliser Tectonic (par défaut) ou
+`--latex-engine pdflatex` si `pdflatex` est installé.
 
-Les paramètres restent configurables, par exemple
+```text
+python signal-processing/filter_ecg.py --record 1 --compile-pdf
+python signal-processing/filter_ecg.py --record 1 --compile-pdf --latex-engine pdflatex
+```
+
+Si le compilateur choisi n'est pas installé, le script conserve les fichiers
+JSON, PNG et `.tex` et affiche un avertissement au lieu d'échouer. Pour obtenir
+un PDF sans installer de compilateur LaTeX, créez un projet sur
+[Overleaf](https://www.overleaf.com/), puis téléversez ensemble le fichier
+`record-1-report.tex` et l'image `record-1-comparison.png` correspondante.
+Overleaf compile alors le rapport en ligne.
+
+Les paramètres du filtre restent configurables, par exemple
 `--low 0.5 --high 40 --order 4`.
 
 ## Lancement du projet
