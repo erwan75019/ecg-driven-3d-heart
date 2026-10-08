@@ -432,6 +432,15 @@ a:focus-visible {
     background: #f7f9f8;
 }
 
+.signal-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 2px;
+}
+
 .field-group,
 .time-readout {
     display: grid;
@@ -530,6 +539,22 @@ select {
     border-color: #d5dfdc;
     background: var(--card);
     color: var(--ink);
+}
+
+.signal-actions .control-button {
+    border-color: rgba(8, 124, 120, 0.28);
+    color: #087c78;
+}
+
+.signal-actions .control-button:hover:not(:disabled) {
+    border-color: #087c78;
+    background: #eaf5f3;
+}
+
+.signal-actions .control-button[aria-pressed="true"] {
+    border-color: #087c78;
+    background: #eaf5f3;
+    color: #087c78;
 }
 
 .control-button:hover:not(:disabled) {
@@ -1151,7 +1176,8 @@ span.phase-legend__t,
 
     .time-readout,
     .speed-control,
-    .playback-controls {
+    .playback-controls,
+    .signal-actions {
         grid-column: 1;
         grid-row: auto;
     }
@@ -1171,6 +1197,11 @@ span.phase-legend__t,
 
     .control-button {
         width: 100%;
+    }
+
+    .signal-actions {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .learning-strip > div {

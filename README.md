@@ -51,25 +51,28 @@ Depuis la racine du dépôt, lancez le script (utilisez `python3` à la place de
 python signal-processing/filter_ecg.py --record 1
 ```
 
-Le script enregistre le signal filtré, le graphique comparatif et le rapport
-LaTeX dans `data/processed/`. La compilation PDF locale est facultative :
-ajoutez `--compile-pdf` pour utiliser Tectonic (par défaut) ou
-`--latex-engine pdflatex` si `pdflatex` est installé.
+Le script génère les fichiers suivants dans `data/processed/` :
 
-```text
-python signal-processing/filter_ecg.py --record 1 --compile-pdf
-python signal-processing/filter_ecg.py --record 1 --compile-pdf --latex-engine pdflatex
-```
+1. Le signal filtré au format JSON (`record-1-filtered.json`).
+2. Le graphique comparatif des signaux brut et filtré (`record-1-comparison.png`).
+3. Le rapport source au format LaTeX (`record-1-report.tex`).
 
-Si le compilateur choisi n'est pas installé, le script conserve les fichiers
-JSON, PNG et `.tex` et affiche un avertissement au lieu d'échouer. Pour obtenir
-un PDF sans installer de compilateur LaTeX, créez un projet sur
-[Overleaf](https://www.overleaf.com/), puis téléversez ensemble le fichier
-`record-1-report.tex` et l'image `record-1-comparison.png` correspondante.
-Overleaf compile alors le rapport en ligne.
+Pour obtenir le PDF, créez un projet sur [Overleaf](https://www.overleaf.com/)
+et téléversez-y le fichier `.tex` ainsi que l'image `.png` correspondante.
+Overleaf compile le rapport en ligne. Cette approche garde le projet et son
+architecture web 100 % statiques, sans nécessiter de compilateur LaTeX local.
 
 Les paramètres du filtre restent configurables, par exemple
 `--low 0.5 --high 40 --order 4`.
+
+### Interface web statique
+
+L'application web permet de sélectionner un enregistrement, de basculer entre
+les signaux ECG brut et filtré et de télécharger un rapport LaTeX depuis le
+panneau ECG. Le rapport est produit localement dans le navigateur à partir des
+données JSON du record ; il contient son graphique et ses paramètres, sans
+requérir de serveur dynamique. Le fichier `.tex` téléchargé peut être déposé
+directement sur Overleaf pour obtenir le PDF.
 
 ## Lancement du projet
 1. Cloner le dépôt sur votre machine.
