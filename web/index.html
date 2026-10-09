@@ -1,316 +1,631 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="data:,">
+
     <meta
+
         name="description"
+
         content="Educational visualization of the cardiac cycle using real ECG signals."
+
     >
+
+
 
     <title>ECG-Driven 3D Heart Visualization</title>
 
+
+
     <link rel="stylesheet" href="css/style.css">
+
 </head>
 
+
+
 <body>
+
     <a class="skip-link" href="#main-content">Skip to main content</a>
 
+
+
     <header class="site-header">
+
         <div class="header-inner">
+
             <div class="brand-lockup">
+
                 <div class="brand-mark" aria-hidden="true">
+
                     <svg viewBox="0 0 40 40">
+
                         <path d="M4 21h7l3-8 5 16 4-11 3 6h10" />
+
                     </svg>
+
                 </div>
 
+
+
                 <div>
+
                     <p class="header-kicker">Biomedical visualization project</p>
+
                     <h1>ECG-Driven <span>3D Heart</span></h1>
+
                 </div>
+
             </div>
+
+
 
             <div class="project-credits" aria-label="Project team">
+
                 <div>
+
                     <span>Developed by</span>
+
                     <p>Erwan Vangu · Clovis Tiemtore</p>
+
                 </div>
+
                 <div class="credits-separator" aria-hidden="true"></div>
+
                 <div>
+
                     <span>Supervised by</span>
+
                     <p>Ali Ismail-Fawaz</p>
+
                 </div>
+
             </div>
+
         </div>
+
     </header>
 
+
+
     <main id="main-content" class="dashboard">
+
         <section class="project-intro" aria-labelledby="intro-title">
+
             <div class="intro-copy">
+
                 <p class="eyebrow">From ECG signal to cardiac motion</p>
+
                 <h2 id="intro-title">Observe the electrical activity,<br>understand the motion.</h2>
+
                 <p>
+
                     A synchronized view of the ECG and cardiac cycle,
+
                     designed as an interactive academic tool.
+
                 </p>
+
             </div>
+
+
 
             <div class="signal-pipeline" aria-label="Visualization stages">
+
                 <div class="pipeline-step is-active">
+
                     <span>01</span>
+
                     <strong>ECG</strong>
+
                 </div>
+
                 <i aria-hidden="true"></i>
+
                 <div class="pipeline-step">
+
                     <span>02</span>
+
                     <strong>P · QRS · T</strong>
+
                 </div>
+
                 <i aria-hidden="true"></i>
+
                 <div class="pipeline-step">
+
                     <span>03</span>
+
                     <strong>Phases</strong>
+
                 </div>
+
                 <i aria-hidden="true"></i>
+
                 <div class="pipeline-step">
+
                     <span>04</span>
+
                     <strong>3D Heart</strong>
+
                 </div>
+
             </div>
+
         </section>
+
+
 
         <div class="workspace-grid">
+
             <section id="ecg-section" class="panel signal-panel" aria-labelledby="ecg-title">
+
                 <div class="panel-header">
+
                     <div class="panel-title-group">
+
                         <span class="section-number">01</span>
+
                         <div>
+
                             <p class="eyebrow">Physiological signal</p>
+
                             <h2 id="ecg-title">ECG Playback</h2>
+
                         </div>
+
                     </div>
+
+
 
                     <div class="live-indicator">
+
                         <span aria-hidden="true"></span>
+
                         LUDB Data
+
                     </div>
+
                 </div>
+
+
 
                 <div id="ecg-container">
+
                     <canvas
+
                         id="ecg-canvas"
+
                         role="img"
+
                         aria-label="Loading the LUDB ECG signal."
+
                     >
+
                         Your browser does not support the canvas element.
+
                     </canvas>
+
                     <div class="canvas-axis-label axis-y">Amplitude</div>
+
                     <div class="canvas-axis-label axis-x">Time (s)</div>
+
                 </div>
+
+
 
                 <div class="transport-bar">
+
                     <label class="field-group" for="record-select">
+
                         <span>Record</span>
+
                         <span class="select-wrapper">
+
                             <select id="record-select" name="record">
+
                                 <option>Loading…</option>
+
                             </select>
+
                         </span>
+
                     </label>
+
+
 
                     <label class="field-group speed-control" for="speed-select">
+
                         <span>Speed</span>
+
                         <span class="select-wrapper">
+
                             <select id="speed-select" name="speed">
+
                                 <option value="0.1">0.1×</option>
+
                                 <option value="0.5">0.5×</option>
+
                                 <option value="1" selected>1×</option>
+
                                 <option value="1.5">1.5×</option>
+
                                 <option value="2">2×</option>
+
                             </select>
+
                         </span>
+
                     </label>
 
+
+
                     <div class="playback-controls" aria-label="Playback controls">
+
                         <button id="restart-button" class="control-button control-button--secondary" type="button" disabled>
+
                             <svg viewBox="0 0 20 20" aria-hidden="true">
+
                                 <path d="M4.5 6.5V2.8M4.5 2.8H8M4.5 2.8a7 7 0 1 1-1.1 8.8" />
+
                             </svg>
+
                             Restart
+
                         </button>
+
                         <button id="play-button" class="control-button control-button--primary" type="button" disabled>
+
                             <svg viewBox="0 0 20 20" aria-hidden="true">
+
                                 <path d="m7 5 7 5-7 5V5Z" />
+
                             </svg>
+
                             Play
+
                         </button>
+
                         <button id="pause-button" class="control-button control-button--secondary" type="button" disabled>
+
                             <svg viewBox="0 0 20 20" aria-hidden="true">
+
                                 <path d="M7 5v10M13 5v10" />
+
                             </svg>
+
                             Pause
+
                         </button>
+
                     </div>
+
+
 
                     <div class="time-readout">
+
                         <span>Elapsed time</span>
+
                         <output id="time-display">00:00.0</output>
+
                     </div>
+
                 </div>
+
             </section>
 
+
+
             <aside class="side-column" aria-label="Synchronized information">
+
                 <section id="heart-section" class="panel heart-panel" aria-labelledby="heart-title">
+
                     <div class="panel-header panel-header--compact">
+
                         <div class="panel-title-group">
+
                             <span class="section-number">02</span>
+
                             <div>
+
                                 <p class="eyebrow">Visualization</p>
+
                                 <h2 id="heart-title">3D Heart</h2>
+
                             </div>
+
                         </div>
-                        <span class="development-tag">Coming soon</span>
+
                     </div>
 
-                    <div id="heart-container" aria-label="Placeholder for the future three-dimensional heart visualization">
-                        <div class="heart-orbit heart-orbit--outer" aria-hidden="true"></div>
-                        <div class="heart-orbit heart-orbit--inner" aria-hidden="true"></div>
-                        <div class="heart-placeholder" aria-hidden="true">
-                            <svg viewBox="0 0 120 120">
-                                <path d="M59 101C42 89 20 73 17 51 14 29 38 17 55 34l5 6 5-6c17-17 41-5 38 17-3 22-26 39-44 50Z" />
-                                <path d="M38 61h13l6-16 8 32 7-21 5 11h12" />
-                            </svg>
-                        </div>
-                        <p>The Three.js scene will be integrated here.</p>
-                    </div>
+
+
+                    <div id="heart-container" aria-label="Interactive three-dimensional heart viewer"></div>
+
+
 
                     <div class="phase-readout">
+
                         <div>
+
                             <span>Current phase</span>
+
                             <p id="phase-display" aria-live="polite">Rest</p>
+
                         </div>
+
                         <span id="phase-code">—</span>
+
                     </div>
+
+
 
                     <p id="phase-description" class="phase-description">
+
                         Time outside the annotated P, QRS and T intervals.
+
                     </p>
 
+
+
                     <div class="phase-legend" aria-label="ECG cycle landmarks">
+
                         <span class="phase-legend__p">P</span>
+
                         <span class="phase-legend__qrs">QRS</span>
+
                         <span class="phase-legend__t">T</span>
+
                     </div>
+
                 </section>
 
+
+
             </aside>
+
         </div>
 
+
+
         <section class="learning-strip" aria-labelledby="learning-title">
+
             <div>
+
                 <p class="eyebrow">ECG interpretation</p>
+
                 <h2 id="learning-title">One cycle, three electrical landmarks</h2>
+
             </div>
+
+
 
             <div class="learning-item learning-item--p">
+
                 <span>P</span>
+
                 <div>
+
                     <h3>Atrial depolarization</h3>
+
                     <p>The electrical activity preceding atrial contraction.</p>
+
                 </div>
+
             </div>
+
+
 
             <div class="learning-item learning-item--qrs">
+
                 <span>QRS</span>
+
                 <div>
+
                     <h3>Ventricular depolarization</h3>
+
                     <p>The complex associated with the onset of ventricular contraction.</p>
+
                 </div>
+
             </div>
+
+
 
             <div class="learning-item learning-item--t">
+
                 <span>T</span>
+
                 <div>
+
                     <h3>Ventricular repolarization</h3>
+
                     <p>The ventricles progressively return to their resting electrical state.</p>
+
                 </div>
+
             </div>
+
         </section>
+
+
 
         <section class="information-grid" aria-label="Project information">
+
             <article class="info-card info-card--about">
+
                 <div class="info-card__header">
+
                     <span class="info-card__number">01</span>
+
                     <h2>ABOUT THE DEMO</h2>
+
                 </div>
+
+
 
                 <h3 class="info-card__subtitle">Visual ECG and cardiac cycle learning</h3>
+
                 <p class="info-card__text">
+
                     This interactive application plays real ECG recordings and highlights
+
                     the P wave, QRS complex and T wave to illustrate the electrical activity
+
                     of the cardiac cycle.
+
                 </p>
+
             </article>
+
+
 
             <article class="info-card info-card--how-to">
+
                 <div class="info-card__header">
+
                     <span class="info-card__number">02</span>
+
                     <h2>HOW TO USE</h2>
+
                 </div>
 
+
+
                 <ul class="compact-list">
+
                     <li>Select a Record to load an ECG sample.</li>
+
                     <li>Choose a speed and press Play to start playback.</li>
+
                     <li>Use Pause to stop at the current time.</li>
+
                     <li>Press Restart to return to the beginning.</li>
+
                     <li>Follow the current P, QRS or T phase during playback.</li>
+
                 </ul>
+
             </article>
+
+
 
             <article class="info-card info-card--dataset">
+
                 <div class="info-card__header">
+
                     <span class="info-card__number">03</span>
+
                     <h2>DATASET</h2>
+
                 </div>
+
+
 
                 <p class="info-card__lead">
+
                     Lobachevsky University Electrocardiography Database (LUDB)
+
                 </p>
 
+
+
                 <ul class="compact-list">
+
                     <li>Sampling rate: 500 Hz</li>
+
                     <li>200 ECG records · 10 s per record</li>
+
                     <li>P, QRS and T annotations</li>
+
                 </ul>
+
+
 
                 <a
+
                     class="info-card__link"
+
                     href="https://physionet.org/content/ludb/1.0.1/"
+
                     target="_blank"
+
                     rel="noopener noreferrer"
+
                 >
+
                     View on PhysioNet
+
                     <svg viewBox="0 0 20 20" aria-hidden="true">
+
                         <path d="M6 14 14 6M8 6h6v6" />
+
                     </svg>
+
                 </a>
+
             </article>
+
+
 
             <article class="info-card info-card--notes">
+
                 <div class="info-card__header">
+
                     <span class="info-card__number">04</span>
+
                     <h2>NOTES</h2>
+
                 </div>
 
+
+
                 <ul class="compact-list">
+
                     <li>Educational visualization, not a medical diagnostic tool.</li>
+
                     <li>ECG intervals come from the dataset annotations.</li>
-                    <li>The interactive 3D heart visualization is under development.</li>
+
+                    <li>The interactive 3D heart can be rotated and zoomed for inspection.</li>
+
                 </ul>
+
             </article>
+
         </section>
+
     </main>
 
-    <script src="js/main.js?v=20261004-safari-timeline"></script>
+
+
+    <script type="importmap">
+
+        {
+
+            "imports": {
+
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+
+            }
+
+        }
+
+    </script>
+
+    <script src="js/main.js?v=20261008-synced-heart"></script>
+
+    <script type="module" src="js/heart3d.js?v=20261008-synced-heart"></script>
+
 </body>
+
 </html>
+
+
