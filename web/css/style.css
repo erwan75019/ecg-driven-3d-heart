@@ -582,6 +582,39 @@ select {
     text-align: center;
 }
 
+.heart-viewer-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none;
+}
+
+.heart-viewer-canvas:active {
+    cursor: grabbing;
+}
+
+.heart-viewer-status {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    color: #768a86;
+    padding: 24px;
+    font-size: 0.72rem;
+    text-align: center;
+    pointer-events: none;
+}
+
+#heart-container[data-viewer-state="ready"] .heart-viewer-status {
+    display: none;
+}
+
 .heart-placeholder {
     position: relative;
     z-index: 2;
