@@ -426,7 +426,7 @@ a:focus-visible {
 
 .axis-x {
     right: 16px;
-    bottom: 10px;
+    top: 8px;
 }
 
 .transport-bar {
@@ -452,6 +452,51 @@ a:focus-visible {
     justify-content: flex-end;
     gap: 10px;
     padding-top: 2px;
+}
+
+.report-dialog {
+    width: min(1100px, calc(100vw - 32px));
+    height: min(900px, calc(100vh - 32px));
+    max-width: none;
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 16px;
+    background: var(--paper);
+    box-shadow: 0 24px 80px rgba(12, 38, 48, 0.3);
+}
+
+.report-dialog::backdrop {
+    background: rgba(12, 38, 48, 0.68);
+    backdrop-filter: blur(3px);
+}
+
+.report-dialog__header {
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.report-dialog__header h2 {
+    font-size: 1rem;
+}
+
+.report-dialog__header .control-button {
+    min-height: 38px;
+}
+
+#report-preview {
+    display: block;
+    width: 100%;
+    height: calc(100% - 58px);
+    border: 0;
+    background: #f3f6f3;
 }
 
 .field-group,
