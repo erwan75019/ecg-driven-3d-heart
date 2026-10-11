@@ -165,7 +165,11 @@ function drawEcg() {
     }
 
     const signalName = showingFilteredSignal ? "Filtered ECG" : "Raw ECG";
-    traceSignal(ecgContext, plot, "#b9c9c5", 1.3);
+    const signalColor = showingFilteredSignal ? "#d97706" : "#087c78";
+    const backgroundSignalColor = showingFilteredSignal
+        ? "rgba(217, 119, 6, 0.42)"
+        : "#b9c9c5";
+    traceSignal(ecgContext, plot, backgroundSignalColor, 1.3);
 
     const progress = Math.min(currentTime / playbackDuration, 1);
     const currentSampleIndex = getCurrentSampleIndex();
@@ -176,19 +180,21 @@ function drawEcg() {
         traceSignal(
             ecgContext,
             plot,
-            "#087c78",
+            signalColor,
             2.2,
             currentSampleIndex
         );
 
-        ecgContext.strokeStyle = "rgba(8, 124, 120, 0.42)";
+        ecgContext.strokeStyle = showingFilteredSignal
+            ? "rgba(217, 119, 6, 0.42)"
+            : "rgba(8, 124, 120, 0.42)";
         ecgContext.lineWidth = 1;
         ecgContext.beginPath();
         ecgContext.moveTo(cursorX, plot.top);
         ecgContext.lineTo(cursorX, plot.top + plot.height);
         ecgContext.stroke();
 
-        ecgContext.fillStyle = "#087c78";
+        ecgContext.fillStyle = signalColor;
         ecgContext.beginPath();
         ecgContext.arc(cursorX, plot.top, 4, 0, Math.PI * 2);
         ecgContext.fill();
@@ -601,6 +607,7 @@ function generateLatexReport(record) {
 \definecolor{HeartTeal}{HTML}{087C78}
 \definecolor{HeartNavy}{HTML}{16324F}
 \definecolor{HeartCoral}{HTML}{EF6A55}
+\definecolor{HeartAmber}{HTML}{D97706}
 \definecolor{SoftMint}{HTML}{EAF5F3}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.7em}
@@ -631,7 +638,7 @@ function generateLatexReport(record) {
 ]
 \addplot[color=HeartCoral,opacity=0.72] coordinates { ${rawCoordinates} };
 \addlegendentry{ECG brut}
-\addplot[color=HeartTeal] coordinates { ${filteredCoordinates} };
+\addplot[color=HeartAmber] coordinates { ${filteredCoordinates} };
 \addlegendentry{ECG filtré}
 \end{axis}
 \end{tikzpicture}
