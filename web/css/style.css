@@ -178,6 +178,19 @@ a:focus-visible {
     font-weight: 650;
 }
 
+.project-credits a {
+    display: inline-block;
+    color: inherit;
+    text-decoration: none;
+    transition: color 160ms ease, transform 160ms ease;
+}
+
+.project-credits a:hover,
+.project-credits a:focus-visible {
+    color: var(--mint);
+    transform: translateY(-1px);
+}
+
 .credits-separator {
     width: 1px;
     height: 34px;

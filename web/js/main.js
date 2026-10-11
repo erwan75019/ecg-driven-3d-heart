@@ -979,6 +979,7 @@ function generateLatexReport(record) {
 \pgfplotsset{compat=1.18}
 \definecolor{HeartTeal}{HTML}{087C78}
 \definecolor{HeartNavy}{HTML}{16324F}
+\definecolor{HeartBlue}{HTML}{2878B5}
 \definecolor{HeartCoral}{HTML}{EF6A55}
 \definecolor{HeartAmber}{HTML}{D97706}
 \definecolor{SoftMint}{HTML}{EAF5F3}
@@ -1009,7 +1010,7 @@ function generateLatexReport(record) {
     legend style={at={(0.5,-0.2)},anchor=north,legend columns=2,draw=none},
     line width=0.8pt
 ]
-\addplot[color=HeartCoral,opacity=0.72] coordinates { ${rawCoordinates} };
+\addplot[color=HeartBlue,opacity=0.8] coordinates { ${rawCoordinates} };
 \addlegendentry{ECG brut}
 \addplot[color=HeartAmber] coordinates { ${filteredCoordinates} };
 \addlegendentry{ECG filtré}

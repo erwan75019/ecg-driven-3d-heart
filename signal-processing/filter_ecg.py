@@ -120,9 +120,9 @@ def save_comparison_plot(
     times = np.arange(raw_signal.size) / sampling_rate
 
     figure, axes = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
-    axes[0].plot(times, raw_signal, color="#82918f", linewidth=0.8)
+    axes[0].plot(times, raw_signal, color="#2878b5", linewidth=0.8)
     axes[0].set_title("Raw ECG")
-    axes[1].plot(times, filtered_signal, color="#087c64", linewidth=0.8)
+    axes[1].plot(times, filtered_signal, color="#d97706", linewidth=0.8)
     axes[1].set_title(
         f"Filtered ECG ({low_cutoff:g}–{high_cutoff:g} Hz)"
     )
