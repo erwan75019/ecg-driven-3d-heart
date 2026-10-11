@@ -26,6 +26,26 @@ const heartContainer = document.getElementById("heart-container");
 
 const HEART_SYNC_EVENT = "ecg-heart-sync";
 
+const PHASE_INTERVAL_COLORS = {
+
+    P: "rgba(100, 203, 213, 0.2)",
+
+    QRS: "rgba(238, 116, 95, 0.16)",
+
+    T: "rgba(242, 184, 75, 0.2)"
+
+};
+
+const PHASE_LABEL_COLORS = {
+
+    P: "#187b85",
+
+    QRS: "#b94734",
+
+    T: "#9a6810"
+
+};
+
 
 
 let currentRecord = null;
@@ -49,6 +69,242 @@ let loadError = null;
 let animationFrameId = null;
 
 let lastTimestamp = null;
+
+
+
+function drawPhaseIntervals(context, plot, duration, intervals, color) {
+
+    if (!Array.isArray(intervals) || !Number.isFinite(duration) || duration <= 0) {
+
+        return;
+
+    }
+
+
+
+    context.fillStyle = color;
+
+
+
+    for (const interval of intervals) {
+
+        if (!Array.isArray(interval) || interval.length < 2) {
+
+            continue;
+
+        }
+
+
+
+        const intervalStart = Number(interval[0]);
+
+        const intervalEnd = Number(interval[1]);
+
+
+
+        if (!Number.isFinite(intervalStart) || !Number.isFinite(intervalEnd)) {
+
+            continue;
+
+        }
+
+
+
+        const start = Math.min(Math.max(intervalStart, 0), duration);
+
+        const end = Math.min(Math.max(intervalEnd, 0), duration);
+
+
+
+        if (end <= start) {
+
+            continue;
+
+        }
+
+
+
+        const x = plot.left + (start / duration) * plot.width;
+
+        const width = ((end - start) / duration) * plot.width;
+
+
+
+        context.fillRect(x, plot.top, width, plot.height);
+
+    }
+
+}
+
+
+
+function drawPhaseOverlays(context, plot, duration, intervals) {
+
+    if (!intervals) {
+
+        return;
+
+    }
+
+
+
+    drawPhaseIntervals(context, plot, duration, intervals.P, PHASE_INTERVAL_COLORS.P);
+
+    drawPhaseIntervals(context, plot, duration, intervals.QRS, PHASE_INTERVAL_COLORS.QRS);
+
+    drawPhaseIntervals(context, plot, duration, intervals.T, PHASE_INTERVAL_COLORS.T);
+
+}
+
+
+
+function drawPhaseLabels(context, plot, duration, intervals) {
+
+    if (!intervals || !Number.isFinite(duration) || duration <= 0) {
+
+        return;
+
+    }
+
+
+
+    const labels = [];
+
+    const phaseDefinitions = [
+
+        {key: "P", color: PHASE_LABEL_COLORS.P},
+
+        {key: "QRS", color: PHASE_LABEL_COLORS.QRS},
+
+        {key: "T", color: PHASE_LABEL_COLORS.T}
+
+    ];
+
+
+
+    for (const phase of phaseDefinitions) {
+
+        const phaseIntervals = intervals[phase.key];
+
+
+
+        if (!Array.isArray(phaseIntervals)) {
+
+            continue;
+
+        }
+
+
+
+        for (const interval of phaseIntervals) {
+
+            if (!Array.isArray(interval) || interval.length < 2) {
+
+                continue;
+
+            }
+
+
+
+            const intervalStart = Number(interval[0]);
+
+            const intervalEnd = Number(interval[1]);
+
+
+
+            if (!Number.isFinite(intervalStart) || !Number.isFinite(intervalEnd)) {
+
+                continue;
+
+            }
+
+
+
+            const start = Math.min(Math.max(intervalStart, 0), duration);
+
+            const end = Math.min(Math.max(intervalEnd, 0), duration);
+
+
+
+            if (end <= start) {
+
+                continue;
+
+            }
+
+
+
+            labels.push({
+
+                text: phase.key,
+
+                color: phase.color,
+
+                center: plot.left + (((start + end) / 2) / duration) * plot.width
+
+            });
+
+        }
+
+    }
+
+
+
+    labels.sort((first, second) => first.center - second.center);
+
+
+
+    context.font = "600 9px Avenir, sans-serif";
+
+    context.textAlign = "center";
+
+    context.textBaseline = "top";
+
+
+
+    const labelLanes = [plot.top + 4, plot.top + 15];
+
+    const laneRightEdges = labelLanes.map(() => -Infinity);
+
+
+
+    for (const label of labels) {
+
+        const textWidth = context.measureText(label.text).width;
+
+        const leftEdge = label.center - textWidth / 2;
+
+        const rightEdge = label.center + textWidth / 2;
+
+        const laneIndex = laneRightEdges.findIndex((edge) => leftEdge >= edge + 3);
+
+
+
+        if (
+
+            laneIndex === -1
+
+            || leftEdge < plot.left
+
+            || rightEdge > plot.left + plot.width
+
+        ) {
+
+            continue;
+
+        }
+
+
+
+        context.fillStyle = label.color;
+
+        context.fillText(label.text, label.center, labelLanes[laneIndex]);
+
+        laneRightEdges[laneIndex] = rightEdge;
+
+    }
+
+}
 
 
 
@@ -308,6 +564,20 @@ function drawEcg() {
 
 
 
+    drawPhaseOverlays(
+
+        ecgContext,
+
+        plot,
+
+        playbackDuration,
+
+        currentRecord.intervals
+
+    );
+
+
+
     traceSignal(ecgContext, plot, "#b9c9c5", 1.3);
 
 
@@ -363,6 +633,20 @@ function drawEcg() {
         ecgContext.fill();
 
     }
+
+
+
+    drawPhaseLabels(
+
+        ecgContext,
+
+        plot,
+
+        playbackDuration,
+
+        currentRecord.intervals
+
+    );
 
 }
 
