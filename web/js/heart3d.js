@@ -1,3 +1,13 @@
+const DEFAULT_HEART_MODEL_ID = "beating-heart";
+
+const HEART_PHASE_ANCHORS = {
+    qrsEnd: 0.24,
+    tStart: 0.42,
+    tEnd: 0.66,
+    pStart: 0.82,
+    pEnd: 0.92
+};
+
 const HEART_MODELS = {
     "beating-heart": {
         label: "Modèle 3D morphologique (Vue interne / Coupe)",
@@ -581,6 +591,91 @@ function getCurrentCycleWindow(time, qrsIntervals, recordDuration) {
     return null;
 }
 
+function getFirstIntervalAfter(intervals, afterTime, beforeTime) {
+    if (!Array.isArray(intervals)) {
+        return null;
+    }
+
+    return intervals
+        .filter((interval) => (
+            Array.isArray(interval)
+            && interval.length === 2
+            && interval.every(Number.isFinite)
+            && interval[1] >= interval[0]
+            && interval[0] >= afterTime
+            && interval[1] <= beforeTime
+        ))
+        .sort((first, second) => first[0] - second[0])[0] || null;
+}
+
+
+function getEventAlignedCycleProgress(time, state, cycle, phaseAnchors) {
+    const qrsInterval = Array.isArray(state.qrsIntervals)
+        ? state.qrsIntervals.find((interval) => (
+            Array.isArray(interval)
+            && interval.length === 2
+            && interval.every(Number.isFinite)
+            && Math.abs(interval[0] - cycle.start) < 1e-6
+            && interval[1] > interval[0]
+            && interval[1] < cycle.end
+        ))
+        : null;
+
+    if (!qrsInterval) {
+        return null;
+    }
+
+    const anchors = [{time: cycle.start, progress: 0}];
+    const addAnchor = (anchorTime, progress) => {
+        const previousAnchor = anchors[anchors.length - 1];
+        if (
+            Number.isFinite(anchorTime)
+            && anchorTime > previousAnchor.time
+            && anchorTime < cycle.end
+            && Number.isFinite(progress)
+            && progress > previousAnchor.progress
+            && progress < 1
+        ) {
+            anchors.push({time: anchorTime, progress});
+        }
+    };
+
+    addAnchor(qrsInterval[1], phaseAnchors.qrsEnd);
+
+    const tInterval = getFirstIntervalAfter(
+        state.tIntervals,
+        qrsInterval[1],
+        cycle.end
+    );
+    if (tInterval) {
+        addAnchor(tInterval[0], phaseAnchors.tStart);
+        addAnchor(tInterval[1], phaseAnchors.tEnd);
+    }
+
+    const pInterval = getFirstIntervalAfter(
+        state.pIntervals,
+        tInterval ? tInterval[1] : qrsInterval[1],
+        cycle.end
+    );
+    if (pInterval) {
+        addAnchor(pInterval[0], phaseAnchors.pStart);
+        addAnchor(pInterval[1], phaseAnchors.pEnd);
+    }
+
+    anchors.push({time: cycle.end, progress: 1});
+
+    for (let index = 0; index < anchors.length - 1; index += 1) {
+        const start = anchors[index];
+        const end = anchors[index + 1];
+        if (time <= end.time) {
+            const segmentProgress = (time - start.time) / (end.time - start.time);
+            return start.progress + segmentProgress * (end.progress - start.progress);
+        }
+    }
+
+    return 1;
+}
+
 
 function getSynchronizedClipTime(state) {
     if (!viewer.animationClip || !state) {
@@ -611,7 +706,13 @@ function getSynchronizedClipTime(state) {
         return 0;
     }
 
-    const cycleProgress = Math.min(
+    const eventAlignedProgress = getEventAlignedCycleProgress(
+        time,
+        state,
+        cycle,
+        HEART_PHASE_ANCHORS
+    );
+    const cycleProgress = eventAlignedProgress ?? Math.min(
         Math.max((time - cycle.start) / (cycle.end - cycle.start), 0),
         1
     );
@@ -695,6 +796,7 @@ async function loadHeartModel(container, GLTFLoader, modelId) {
             initializeHeartAnimation(gltf);
             fitCameraToModel();
             viewer.selectedModelId = modelId;
+            applySynchronizedHeartPose();
             updateModelAttribution(model);
             updateStatus(container, "ready", "");
         } catch (error) {
@@ -926,7 +1028,10 @@ async function initializeHeartViewer() {
         const infoButton = document.getElementById("heart-model-info-button");
         const infoDialog = document.getElementById("heart-model-info-dialog");
         const closeInfoButton = document.getElementById("close-heart-model-info");
-        const initialModelId = modelSelect ? modelSelect.value : "beating-heart";
+        if (modelSelect) {
+            modelSelect.value = DEFAULT_HEART_MODEL_ID;
+        }
+        const initialModelId = DEFAULT_HEART_MODEL_ID;
 
         loadHeartModel(container, GLTFLoader, initialModelId);
         if (modelSelect) {

@@ -87,6 +87,11 @@ Le rapport comprend également, pour chaque onde P annotée, le délai entre son
 début et le pic maximal du complexe QRS suivant dans le signal ECG filtré. Un
 clic ou un glissement sur le tracé ECG positionne le curseur à cet instant et
 synchronise le cœur sans démarrer la lecture.
+Pour tous les modèles, les limites annotées des intervalles QRS, T et P servent
+aussi de repères pour répartir le clip d'animation au cours du cycle.
+Les fractions initiales du clip associées à ces repères sont des estimations
+à valider visuellement ; elles ne constituent pas une mesure physiologique
+validée.
 Le bouton « User guide » présente les commandes du site et le format attendu
 pour ajouter des enregistrements.
 
