@@ -384,8 +384,18 @@
                         <span>Heart model</span>
                         <span class="select-wrapper">
                             <select id="heart-model-select" name="heart-model">
-                                <option value="beating-heart">Modèle 3D morphologique (Vue interne / Coupe)</option>
-                                <option value="alternate-beating-heart">Modèle 3D externe (Rendu surfacique épuré)</option>
+                                <optgroup label="Anatomie générale et vue externe">
+                                    <option value="alternate-beating-heart">Modèle 3D externe (Rendu surfacique épuré)</option>
+                                    <option value="anatomical-heart">Modèle 3D anatomique animé (vue générale)</option>
+                                    <option value="closed-heart">Modèle 3D anatomique fermé (vue externe)</option>
+                                    <option value="human-heart">Modèle 3D anatomique humain animé (texturé)</option>
+                                    <option value="realistic-heart">Modèle 3D cardiaque réaliste animé</option>
+                                </optgroup>
+                                <optgroup label="Vues internes et pathologies">
+                                    <option value="beating-heart">Modèle 3D morphologique (Vue interne / Coupe)</option>
+                                    <option value="open-heart">Modèle 3D anatomique ouvert (vue interne)</option>
+                                    <option value="mitral-stenosis">Modèle 3D pathologique (sténose mitrale)</option>
+                                </optgroup>
                             </select>
                         </span>
                     </label>
@@ -712,11 +722,11 @@
                 <p class="eyebrow">Quick start</p>
                 <h3 id="guide-use-title">Explore a recording</h3>
                 <ol class="guide-steps">
-                    <li><strong>Choose a record and heart model.</strong> The selectors load an ECG and one of the two animated heart models.</li>
+                    <li><strong>Choose a record and heart model.</strong> The selectors load an ECG and one of the available animated heart models.</li>
                     <li><strong>Play the cycle.</strong> Use Play, Pause, Restart, or choose a playback speed.</li>
-                    <li><strong>Jump to a moment.</strong> Hover over the ECG trace and click. Playback starts from that point, synchronized with the heart view.</li>
+                    <li><strong>Position the timeline.</strong> Click or drag along the ECG trace to move the cursor to that moment. This does not start playback; use Play to resume, with the heart synchronized to the selected time.</li>
                     <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
-                    <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-wave onset-to-peak measurements. Use Print / Save as PDF to export it.</li>
+                    <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
                 </ol>
                 <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline. This is an educational visualization, not a medical diagnostic tool.</p>
             </section>
@@ -736,10 +746,15 @@
                 <p class="eyebrow">Attribution</p>
                 <h3 id="guide-credits-title">Crédits et Remerciements</h3>
                 <ul class="guide-steps guide-credits-list">
-                    <li><strong>Cœur réaliste animé — “Beating heart 3D” by soufiane oujihi.</strong> <a href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.</li>
-                    <li><strong>Cœur animé alternatif — “Animated Beating Heart” by nitwit.friends.</strong> <a href="https://sketchfab.com/nitwit.friends" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.</li>
+                    <li><strong>“Beating heart 3D” by soufiane oujihi.</strong> <a href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Animated Beating Heart” by nitwit.friends.</strong> <a href="https://sketchfab.com/nitwit.friends" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“heart” by shooogp.</strong> <a href="https://sketchfab.com/shooogp" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Heart Mitral Stenosis” by Edwin3dArtist.</strong> <a href="https://sketchfab.com/edwinaldanadesign" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Closed Heart” and “Open Heart” by Ali.Zorays.</strong> <a href="https://sketchfab.com/Ali.Zorays" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390" target="_blank" rel="noopener noreferrer">Closed model</a> · <a href="https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87" target="_blank" rel="noopener noreferrer">Open model</a> · Both under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Human Heart.” by Ricardo Joel Arana.</strong> <a href="https://sketchfab.com/Ricardo47291" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Realistic Heart Animated” by Pixio x AI Tutor.</strong> <a href="https://sketchfab.com/tsiorg" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
                 </ul>
-                <p class="guide-note">The model files are provided in <code>web/assets/models/</code>. Please retain these attributions and the applicable license terms when redistributing them.</p>
+                <p class="guide-note">The model files are provided in <code>web/assets/models/</code>. All selected models are downloadable under CC BY 4.0. Please retain these attributions and the license terms when redistributing them.</p>
             </section>
         </div>
     </dialog>

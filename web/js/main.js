@@ -1074,13 +1074,13 @@ function generateReportPreview(record) {
     const pWaveMeasurements = getPWavePeakMeasurements(record, filteredSignal);
     const pWaveRows = pWaveMeasurements.length
         ? pWaveMeasurements.map((measurement) => `<tr>
-                    <td>P${measurement.number}</td>
+                    <td>P${measurement.number} → QRS${measurement.qrsNumber}</td>
                     <td>${measurement.onset.toFixed(3)} s</td>
                     <td>${measurement.peakTime.toFixed(3)} s</td>
                     <td>${(measurement.delay * 1000).toFixed(1)} ms</td>
                     <td>${measurement.amplitude.toFixed(4)}</td>
                 </tr>`).join("")
-        : '<tr><td colspan="5">No valid P-wave annotations are available for this record.</td></tr>';
+        : '<tr><td colspan="5">No valid P-to-QRS annotations are available for this record.</td></tr>';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1179,11 +1179,11 @@ function generateReportPreview(record) {
             </table>
         </section>
         <section class="p-wave-measurements" aria-labelledby="p-wave-measurements-title">
-            <h2 id="p-wave-measurements-title">P-wave onset to maximum peak</h2>
-            <p class="measurement-note">For each annotated P wave, the onset is the interval start and the peak is the highest filtered ECG sample within that interval. The distance is the elapsed time from onset to peak.</p>
+            <h2 id="p-wave-measurements-title">P-wave onset to QRS maximum peak</h2>
+            <p class="measurement-note">Each annotated P wave is paired with the next annotated QRS complex. The onset is the P interval start, and the peak is the highest filtered ECG sample within that QRS interval. The distance is the elapsed time from P onset to QRS peak.</p>
             <table>
                 <thead>
-                    <tr><th scope="col">Wave</th><th scope="col">Onset</th><th scope="col">Peak time</th><th scope="col">Onset-to-peak</th><th scope="col">Peak amplitude</th></tr>
+                    <tr><th scope="col">P → QRS</th><th scope="col">P onset</th><th scope="col">QRS peak time</th><th scope="col">Onset-to-peak</th><th scope="col">Peak amplitude</th></tr>
                 </thead>
                 <tbody>${pWaveRows}</tbody>
             </table>
@@ -1289,25 +1289,46 @@ function getPWavePeakMeasurements(record, signal) {
     const pIntervals = record.intervals && Array.isArray(record.intervals.P)
         ? record.intervals.P
         : [];
+    const qrsIntervals = record.intervals && Array.isArray(record.intervals.QRS)
+        ? record.intervals.QRS
+        : [];
 
     return pIntervals.flatMap((interval, intervalIndex) => {
         if (
             !Array.isArray(interval)
             || interval.length !== 2
             || !interval.every(Number.isFinite)
+            || interval[1] < interval[0]
+            || !Number.isFinite(record.fs)
+            || record.fs <= 0
+            || !Array.isArray(signal)
         ) {
             return [];
         }
 
         const start = Math.max(0, interval[0]);
-        const end = Math.min(interval[1], signal.length / record.fs);
-        const firstSample = Math.ceil(start * record.fs);
+        const qrsIndex = qrsIntervals.findIndex((qrsInterval) => (
+            Array.isArray(qrsInterval)
+            && qrsInterval.length === 2
+            && qrsInterval.every(Number.isFinite)
+            && qrsInterval[1] >= qrsInterval[0]
+            && qrsInterval[0] >= start
+        ));
+
+        if (qrsIndex === -1) {
+            return [];
+        }
+
+        const qrsInterval = qrsIntervals[qrsIndex];
+        const qrsStart = Math.max(0, qrsInterval[0]);
+        const qrsEnd = Math.min(qrsInterval[1], signal.length / record.fs);
+        const firstSample = Math.ceil(qrsStart * record.fs);
         const lastSample = Math.min(
             signal.length - 1,
-            Math.floor(end * record.fs)
+            Math.floor(qrsEnd * record.fs)
         );
 
-        if (end < start || firstSample > lastSample) {
+        if (qrsEnd < qrsStart || firstSample > lastSample) {
             return [];
         }
 
@@ -1330,9 +1351,10 @@ function getPWavePeakMeasurements(record, signal) {
 
         return [{
             number: intervalIndex + 1,
+            qrsNumber: qrsIndex + 1,
             onset: start,
             peakTime,
-            delay: Math.max(0, peakTime - start),
+            delay: peakTime - start,
             amplitude: peakAmplitude
         }];
     });

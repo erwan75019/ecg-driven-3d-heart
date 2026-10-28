@@ -18,6 +18,66 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55",
         file: "web/assets/models/animated-beating-heart.glb"
+    },
+    "anatomical-heart": {
+        label: "Modèle 3D anatomique animé (vue générale)",
+        url: "assets/models/anatomical-heart.glb",
+        author: "shooogp",
+        authorUrl: "https://sketchfab.com/shooogp",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6",
+        file: "web/assets/models/anatomical-heart.glb"
+    },
+    "mitral-stenosis": {
+        label: "Modèle 3D pathologique (sténose mitrale)",
+        url: "assets/models/mitral-stenosis-heart.glb",
+        author: "Edwin3dArtist",
+        authorUrl: "https://sketchfab.com/edwinaldanadesign",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2",
+        file: "web/assets/models/mitral-stenosis-heart.glb"
+    },
+    "closed-heart": {
+        label: "Modèle 3D anatomique fermé (vue externe)",
+        url: "assets/models/closed-heart.glb",
+        author: "Ali.Zorays",
+        authorUrl: "https://sketchfab.com/Ali.Zorays",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390",
+        file: "web/assets/models/closed-heart.glb"
+    },
+    "open-heart": {
+        label: "Modèle 3D anatomique ouvert (vue interne)",
+        url: "assets/models/open-heart.glb",
+        author: "Ali.Zorays",
+        authorUrl: "https://sketchfab.com/Ali.Zorays",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87",
+        file: "web/assets/models/open-heart.glb"
+    },
+    "human-heart": {
+        label: "Modèle 3D anatomique humain animé (texturé)",
+        url: "assets/models/human-heart-animated.glb",
+        author: "Ricardo Joel Arana",
+        authorUrl: "https://sketchfab.com/Ricardo47291",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf",
+        file: "web/assets/models/human-heart-animated.glb"
+    },
+    "realistic-heart": {
+        label: "Modèle 3D cardiaque réaliste animé",
+        url: "assets/models/realistic-heart-animated.glb",
+        author: "Pixio x AI Tutor",
+        authorUrl: "https://sketchfab.com/tsiorg",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f",
+        file: "web/assets/models/realistic-heart-animated.glb"
     }
 };
 
