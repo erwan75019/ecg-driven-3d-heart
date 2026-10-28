@@ -5,15 +5,23 @@ ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web
 - Front-end : HTML5, CSS3, JavaScript et Canvas 2D
 - Traitement et export des signaux ECG : Python et JSON
 - Source des données : Lobachevsky University Electrocardiography Database (LUDB), via PhysioNet
-- Ressource 3D : modèle anatomique `Human_Heart.glb`, conservé pour une future intégration Three.js
+- Ressources 3D : modèles sélectionnables chargés avec Three.js.
 
 ## Structure du projet
 - `web/index.html` : interface principale de l'application web.
 - `web/css/` : feuilles de style de l'interface.
 - `web/js/` : lecture des données LUDB, animation et tracé du signal ECG 2D.
 - `web/data/ludb/` : index et 200 enregistrements optimisés pour la lecture web.
-- `web/models/` : modèle anatomique 3D du cœur (`Human_Heart.glb`).
+- `web/assets/models/` : modèles 3D du cœur sélectionnables dans l'interface.
 - `signal-processing/` : scripts de lecture et d'export des données LUDB.
+
+## Modèles 3D et crédits
+
+- **Cœur réaliste animé — “Beating heart 3D”**, par soufiane oujihi. [Sketchfab](https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db) · [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+- **Cœur animé alternatif — “Animated Beating Heart”**, par nitwit.friends. [Sketchfab](https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55) · [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+
+Les crédits complets et les liens vers les licences sont également accessibles
+depuis l'onglet « Credits » du guide d'utilisation.
 
 ## Filtrage ECG et rapport
 ### Installation rapide

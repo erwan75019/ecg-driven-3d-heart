@@ -313,6 +313,101 @@ a:focus-visible {
     flex: 1;
 }
 
+.heart-model-picker {
+    margin-bottom: 12px;
+}
+
+.heart-model-picker select {
+    border-color: #cfe1dc;
+    background-color: #f7f9f8;
+    color: var(--night);
+}
+
+.heart-model-info-button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.75rem;
+}
+
+.heart-model-info-button__icon {
+    display: grid;
+    width: 17px;
+    height: 17px;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-style: italic;
+    font-weight: 800;
+}
+
+.heart-model-info-dialog {
+    width: min(460px, calc(100vw - 32px));
+    max-width: none;
+    max-height: min(620px, calc(100vh - 32px));
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 16px;
+    background: var(--paper);
+    box-shadow: 0 24px 80px rgba(12, 38, 48, 0.3);
+}
+
+.heart-model-info-dialog::backdrop {
+    background: rgba(12, 38, 48, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.heart-model-info-content {
+    padding: 24px;
+}
+
+.heart-model-info-content h3 {
+    margin: 4px 0 20px;
+    color: var(--night);
+    font-size: 1.2rem;
+    letter-spacing: -0.025em;
+}
+
+.heart-model-info-facts {
+    display: grid;
+    gap: 15px;
+}
+
+.heart-model-info-facts > div {
+    display: grid;
+    gap: 3px;
+}
+
+.heart-model-info-facts dt {
+    color: #748683;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.heart-model-info-facts dd {
+    color: var(--ink);
+    font-size: 0.83rem;
+}
+
+.heart-model-info-facts a {
+    color: var(--mint-dark);
+    font-weight: 700;
+    text-underline-offset: 2px;
+}
+
+.heart-model-info-facts code {
+    overflow-wrap: anywhere;
+    border-radius: 4px;
+    background: #edf4f1;
+    color: var(--mint-dark);
+    padding: 2px 5px;
+    font-size: 0.78rem;
+}
+
 .panel-header,
 .panel-title-group {
     display: flex;
@@ -579,6 +674,12 @@ a:focus-visible {
     color: var(--mint-dark);
     padding: 1px 4px;
     font-size: 0.9em;
+}
+
+.guide-credits-list a {
+    color: var(--mint-dark);
+    font-weight: 700;
+    text-underline-offset: 3px;
 }
 
 .guide-note {

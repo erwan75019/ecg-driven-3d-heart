@@ -1,17 +1,31 @@
-const MODEL_URL = "assets/models/heart.glb";
+const HEART_MODELS = {
+    "beating-heart": {
+        label: "Cœur réaliste animé",
+        url: "assets/models/beating-heart-3d.glb",
+        author: "soufiane oujihi",
+        authorUrl: "https://sketchfab.com/soufianeoujihi",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db",
+        file: "web/assets/models/beating-heart-3d.glb"
+    },
+    "alternate-beating-heart": {
+        label: "Cœur animé alternatif",
+        url: "assets/models/animated-beating-heart.glb",
+        author: "nitwit.friends",
+        authorUrl: "https://sketchfab.com/nitwit.friends",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55",
+        file: "web/assets/models/animated-beating-heart.glb"
+    }
+};
 
 const TARGET_MODEL_SIZE = 2;
 
-const TARGET_FRAME_OCCUPANCY = 0.9;
+const TARGET_FRAME_OCCUPANCY = 0.76;
 
-const MODEL_VERTICAL_CENTER_OFFSET = 0.01;
 const HEART_SYNC_EVENT = "ecg-heart-sync";
-
-// The supplied GLB contains one complete morph-based cardiac cycle.
-// Geometry inspection shows that visible contraction starts near 0.133 s
-// and reaches maximum contraction around 0.400 s.
-const CLIP_CONTRACTION_START_TIME = 0.13333334;
-const CLIP_MAX_CONTRACTION_TIME = 0.4;
 
 const DEFAULT_MODEL_ROTATION = {
 
@@ -32,6 +46,12 @@ const viewer = {
     animationClip: null,
 
     animationClips: [],
+
+    modelLoadRequestId: 0,
+
+    modelScene: null,
+
+    selectedModelId: null,
 
     camera: null,
 
@@ -98,6 +118,32 @@ function updateStatus(container, state, message) {
 
 }
 
+function updateModelAttribution(model) {
+    const nameElement = document.getElementById("heart-model-info-name");
+    const authorElement = document.getElementById("heart-model-info-author");
+    const licenseElement = document.getElementById("heart-model-info-license");
+    const fileElement = document.getElementById("heart-model-info-file");
+    const sourceElement = document.getElementById("heart-model-info-source");
+
+    if (
+        !nameElement
+        || !authorElement
+        || !licenseElement
+        || !fileElement
+        || !sourceElement
+    ) {
+        return;
+    }
+
+    nameElement.textContent = model.label;
+    authorElement.textContent = model.author;
+    authorElement.href = model.authorUrl;
+    licenseElement.textContent = model.license;
+    licenseElement.href = model.licenseUrl;
+    fileElement.textContent = model.file;
+    sourceElement.href = model.source;
+}
+
 
 
 function fitCameraToModel() {
@@ -112,7 +158,7 @@ function fitCameraToModel() {
 
     const THREE = viewer.THREE;
 
-    const box = new THREE.Box3().setFromObject(viewer.modelRoot);
+    const box = new THREE.Box3().setFromObject(viewer.modelRoot, true);
 
 
 
@@ -129,10 +175,6 @@ function fitCameraToModel() {
     const center = box.getCenter(new THREE.Vector3());
 
     const modelSize = Math.max(size.x, size.y, size.z);
-
-    center.y += size.y * MODEL_VERTICAL_CENTER_OFFSET;
-
-
 
     const verticalFov = THREE.MathUtils.degToRad(viewer.camera.fov);
 
@@ -304,8 +346,11 @@ function centerAndScaleModel(model) {
 
     const THREE = viewer.THREE;
 
-    const sourceBox = new THREE.Box3().setFromObject(model);
+    const modelOffset = new THREE.Group();
+    modelOffset.add(model);
+    modelOffset.updateMatrixWorld(true);
 
+    const sourceBox = new THREE.Box3().setFromObject(modelOffset, true);
 
 
     if (sourceBox.isEmpty()) {
@@ -332,9 +377,8 @@ function centerAndScaleModel(model) {
 
 
 
-    model.position.sub(sourceCenter);
-
-
+    modelOffset.position.sub(sourceCenter);
+    modelOffset.updateMatrixWorld(true);
 
     const modelRoot = new THREE.Group();
 
@@ -352,7 +396,7 @@ function centerAndScaleModel(model) {
 
     );
 
-    modelRoot.add(model);
+    modelRoot.add(modelOffset);
 
     modelRoot.updateMatrixWorld(true);
 
@@ -360,6 +404,58 @@ function centerAndScaleModel(model) {
 
     return modelRoot;
 
+}
+
+function disposeModelResources(model) {
+    const geometries = new Set();
+    const materials = new Set();
+    const textures = new Set();
+
+    model.traverse((object) => {
+        if (object.geometry && !geometries.has(object.geometry)) {
+            geometries.add(object.geometry);
+            object.geometry.dispose();
+        }
+
+        const objectMaterials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+
+        for (const material of objectMaterials) {
+            if (!material || materials.has(material)) {
+                continue;
+            }
+
+            materials.add(material);
+            for (const value of Object.values(material)) {
+                if (value && value.isTexture && !textures.has(value)) {
+                    textures.add(value);
+                    value.dispose();
+                }
+            }
+            material.dispose();
+        }
+    });
+}
+
+function removeCurrentModel() {
+    if (viewer.mixer && viewer.modelScene) {
+        viewer.mixer.stopAllAction();
+        viewer.mixer.uncacheRoot(viewer.modelScene);
+    }
+
+    if (viewer.modelRoot) {
+        viewer.scene.remove(viewer.modelRoot);
+        disposeModelResources(viewer.modelRoot);
+    }
+
+    viewer.animationAction = null;
+    viewer.animationClip = null;
+    viewer.animationClips = [];
+    viewer.meshNames = [];
+    viewer.mixer = null;
+    viewer.modelRoot = null;
+    viewer.modelScene = null;
 }
 
 
@@ -460,13 +556,7 @@ function getSynchronizedClipTime(state) {
         1
     );
 
-    // QRS onset lands on the visible start of ventricular contraction
-    // inside the original GLB clip. The clip start/end poses are identical,
-    // so the wrap remains continuous from beat to beat.
-    const contractionStartFraction = CLIP_CONTRACTION_START_TIME / clipDuration;
-    const clipProgress = (cycleProgress + contractionStartFraction) % 1;
-
-    return clipProgress * clipDuration;
+    return cycleProgress * clipDuration;
 }
 
 
@@ -518,55 +608,52 @@ if (window.__ecgHeartSyncState) {
 }
 
 
-function loadHeartModel(container, GLTFLoader) {
+async function loadHeartModel(container, GLTFLoader, modelId) {
+    const model = HEART_MODELS[modelId];
+    if (!model) {
+        throw new Error(`Unknown 3D heart model: ${modelId}`);
+    }
 
-    const loader = new GLTFLoader();
+    const requestId = viewer.modelLoadRequestId + 1;
+    viewer.modelLoadRequestId = requestId;
+    updateStatus(container, "loading", `Loading ${model.label}…`);
 
-
-
-    loader.load(
-
-        MODEL_URL,
-
-        (gltf) => {
-
-            try {
-
-                viewer.animationClips = gltf.animations || [];
-
-                prepareModel(gltf.scene);
-
-                viewer.modelRoot = centerAndScaleModel(gltf.scene);
-
-                viewer.scene.add(viewer.modelRoot);
-                initializeHeartAnimation(gltf);
-
-                fitCameraToModel();
-
-                updateStatus(container, "ready", "");
-
-            } catch (error) {
-
-                console.error("Unable to prepare the 3D heart model.", error);
-
-                updateStatus(container, "error", "3D heart model could not be displayed.");
-
-            }
-
-        },
-
-        undefined,
-
-        (error) => {
-
-            console.error("Unable to load the 3D heart model.", error);
-
-            updateStatus(container, "error", "3D heart model could not be loaded.");
-
+    try {
+        const gltf = await new GLTFLoader().loadAsync(model.url);
+        if (requestId !== viewer.modelLoadRequestId) {
+            disposeModelResources(gltf.scene);
+            return;
         }
 
-    );
+        try {
+            removeCurrentModel();
+            viewer.animationClips = gltf.animations || [];
+            prepareModel(gltf.scene);
+            viewer.modelRoot = centerAndScaleModel(gltf.scene);
+            viewer.modelScene = gltf.scene;
+            viewer.scene.add(viewer.modelRoot);
+            initializeHeartAnimation(gltf);
+            fitCameraToModel();
+            viewer.selectedModelId = modelId;
+            updateModelAttribution(model);
+            updateStatus(container, "ready", "");
+        } catch (error) {
+            removeCurrentModel();
+            disposeModelResources(gltf.scene);
+            throw error;
+        }
+    } catch (error) {
+        if (requestId !== viewer.modelLoadRequestId) {
+            return;
+        }
 
+        console.error(`Unable to load the 3D heart model "${model.label}".`, error);
+        const modelSelect = document.getElementById("heart-model-select");
+        if (viewer.selectedModelId && modelSelect) {
+            modelSelect.value = viewer.selectedModelId;
+        }
+        updateStatus(container, "error", `${model.label} could not be loaded.`);
+    }
 }
 
 
@@ -775,7 +862,33 @@ async function initializeHeartViewer() {
 
         viewer.renderer.setAnimationLoop(renderViewer);
 
-        loadHeartModel(container, GLTFLoader);
+        const modelSelect = document.getElementById("heart-model-select");
+        const infoButton = document.getElementById("heart-model-info-button");
+        const infoDialog = document.getElementById("heart-model-info-dialog");
+        const closeInfoButton = document.getElementById("close-heart-model-info");
+        const initialModelId = modelSelect ? modelSelect.value : "beating-heart";
+
+        loadHeartModel(container, GLTFLoader, initialModelId);
+        if (modelSelect) {
+            modelSelect.addEventListener("change", () => {
+                loadHeartModel(container, GLTFLoader, modelSelect.value);
+            });
+        }
+        if (infoButton && infoDialog) {
+            infoButton.addEventListener("click", () => {
+                infoDialog.showModal();
+            });
+            infoDialog.addEventListener("click", (event) => {
+                if (event.target === infoDialog) {
+                    infoDialog.close();
+                }
+            });
+        }
+        if (closeInfoButton && infoDialog) {
+            closeInfoButton.addEventListener("click", () => {
+                infoDialog.close();
+            });
+        }
 
     } catch (error) {
 
@@ -831,9 +944,6 @@ export function getHeartViewerState() {
 
         activeAnimationTime: viewer.mixer ? viewer.mixer.time : null,
 
-        contractionStartTime: CLIP_CONTRACTION_START_TIME,
-
-        maxContractionTime: CLIP_MAX_CONTRACTION_TIME,
 
         cameraPosition: viewer.camera
 
@@ -857,7 +967,10 @@ export function getHeartViewerState() {
 
         modelLoaded: viewer.modelRoot !== null,
 
-        modelUrl: MODEL_URL,
+        modelUrl: viewer.selectedModelId
+            ? HEART_MODELS[viewer.selectedModelId].url
+            : null,
+        selectedModelId: viewer.selectedModelId,
 
         morphTargetWeights,
 
