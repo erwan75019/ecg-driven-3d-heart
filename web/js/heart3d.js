@@ -1,6 +1,6 @@
 const HEART_MODELS = {
     "beating-heart": {
-        label: "Cœur réaliste animé",
+        label: "Modèle 3D morphologique (Vue interne / Coupe)",
         url: "assets/models/beating-heart-3d.glb",
         author: "soufiane oujihi",
         authorUrl: "https://sketchfab.com/soufianeoujihi",
@@ -10,7 +10,7 @@ const HEART_MODELS = {
         file: "web/assets/models/beating-heart-3d.glb"
     },
     "alternate-beating-heart": {
-        label: "Cœur animé alternatif",
+        label: "Modèle 3D externe (Rendu surfacique épuré)",
         url: "assets/models/animated-beating-heart.glb",
         author: "nitwit.friends",
         authorUrl: "https://sketchfab.com/nitwit.friends",
