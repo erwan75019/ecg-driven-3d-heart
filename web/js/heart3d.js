@@ -66,7 +66,6 @@ function getHeartContainer() {
 }
 
 
-
 function createStatusElement(container) {
 
     const statusElement = document.createElement("div");

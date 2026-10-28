@@ -205,11 +205,8 @@
                 <div id="ecg-container">
 
                     <canvas
-
                         id="ecg-canvas"
-
                         role="img"
-
                         aria-label="Loading the LUDB ECG signal."
 
                     >
@@ -219,12 +216,8 @@
                     </canvas>
 
                     <div class="canvas-axis-label axis-y">Amplitude</div>
-
                     <div class="canvas-axis-label axis-x">Time (s)</div>
-
                 </div>
-
-
 
                 <div class="transport-bar">
 
@@ -333,12 +326,12 @@
                             Show filtered ECG
                         </button>
                         <button
-                            id="download-report-button"
+                            id="view-report-button"
                             class="control-button control-button--secondary"
                             type="button"
                             disabled
                         >
-                            Download LaTeX report
+                            View report
                         </button>
                     </div>
                 </div>
@@ -528,13 +521,10 @@
                     <li>Select a Record to load an ECG sample.</li>
 
                     <li>Choose a speed and press Play to start playback.</li>
-
                     <li>Use Pause to stop at the current time.</li>
-
                     <li>Press Restart to return to the beginning.</li>
-
+                    <li>Use Show filtered ECG to compare the raw and filtered signals.</li>
                     <li>Follow the current P, QRS or T phase during playback.</li>
-
                 </ul>
 
             </article>
@@ -624,8 +614,17 @@
             </article>
 
         </section>
-
     </main>
+
+    <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-dialog-title">
+        <div class="report-dialog__header">
+            <h2 id="report-dialog-title">ECG report preview</h2>
+            <button id="close-report-button" class="control-button control-button--secondary" type="button">
+                Close
+            </button>
+        </div>
+        <iframe id="report-preview" title="ECG report preview"></iframe>
+    </dialog>
 
 
 
@@ -645,7 +644,7 @@
 
     </script>
 
-    <script src="js/main.js?v=20261008-synced-heart"></script>
+    <script src="js/main.js?v=20261011-clean-print-header"></script>
 
     <script type="module" src="js/heart3d.js?v=20261008-synced-heart"></script>
 

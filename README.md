@@ -42,7 +42,7 @@ source .venv/bin/activate
 python -m pip install -r signal-processing/requirements.txt
 ```
 
-### Générer le rapport
+### Filtrer un enregistrement
 
 Depuis la racine du dépôt, lancez le script (utilisez `python3` à la place de
 `python` si nécessaire) :
@@ -55,12 +55,6 @@ Le script génère les fichiers suivants dans `data/processed/` :
 
 1. Le signal filtré au format JSON (`record-1-filtered.json`).
 2. Le graphique comparatif des signaux brut et filtré (`record-1-comparison.png`).
-3. Le rapport source au format LaTeX (`record-1-report.tex`).
-
-Pour obtenir le PDF, créez un projet sur [Overleaf](https://www.overleaf.com/)
-et téléversez-y le fichier `.tex` ainsi que l'image `.png` correspondante.
-Overleaf compile le rapport en ligne. Cette approche garde le projet et son
-architecture web 100 % statiques, sans nécessiter de compilateur LaTeX local.
 
 Les paramètres du filtre restent configurables, par exemple
 `--low 0.5 --high 40 --order 4`.
@@ -68,11 +62,18 @@ Les paramètres du filtre restent configurables, par exemple
 ### Interface web statique
 
 L'application web permet de sélectionner un enregistrement, de basculer entre
-les signaux ECG brut et filtré et de télécharger un rapport LaTeX depuis le
-panneau ECG. Le rapport est produit localement dans le navigateur à partir des
-données JSON du record ; il contient son graphique et ses paramètres, sans
-requérir de serveur dynamique. Le fichier `.tex` téléchargé peut être déposé
-directement sur Overleaf pour obtenir le PDF.
+les signaux ECG brut et filtré et d'ouvrir un aperçu du rapport dans la page.
+Les zones P, QRS et T du graphique correspondent aux annotations de
+l'enregistrement sélectionné. Le signal filtré et le rapport sont calculés dans
+le navigateur à partir des données JSON locales ; aucun serveur applicatif ni
+base de données n'est nécessaire. L'aperçu du rapport s'affiche directement
+dans la page et peut être imprimé ou enregistré en PDF depuis le navigateur.
+Le script Python sert uniquement au filtrage hors ligne et à la création du
+graphique comparatif.
+
+Le site peut être hébergé sur un service statique comme GitHub Pages. Le
+chargement de Three.js depuis un CDN nécessite une connexion internet pour la
+visualisation 3D ; les enregistrements et le modèle du cœur sont dans le dépôt.
 
 ## Lancement du projet
 1. Cloner le dépôt sur votre machine.

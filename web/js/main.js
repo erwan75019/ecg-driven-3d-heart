@@ -9,12 +9,13 @@ const playButton = document.getElementById("play-button");
 const pauseButton = document.getElementById("pause-button");
 
 const restartButton = document.getElementById("restart-button");
-
 const recordSelect = document.getElementById("record-select");
-
 const speedSelect = document.getElementById("speed-select");
 const switchSignalButton = document.getElementById("switch-signal-button");
-const downloadReportButton = document.getElementById("download-report-button");
+const viewReportButton = document.getElementById("view-report-button");
+const reportDialog = document.getElementById("report-dialog");
+const reportPreview = document.getElementById("report-preview");
+const closeReportButton = document.getElementById("close-report-button");
 const timeDisplay = document.getElementById("time-display");
 
 const phaseDisplay = document.getElementById("phase-display");
@@ -139,6 +140,38 @@ function drawGrid(context, width, height, plot, duration) {
 
 }
 
+function drawPhaseRegions(context, plot, duration) {
+    const phases = [
+        {key: "P", color: "rgba(100, 203, 213, 0.22)"},
+        {key: "QRS", color: "rgba(238, 116, 95, 0.2)"},
+        {key: "T", color: "rgba(242, 184, 75, 0.22)"}
+    ];
+
+    for (const phase of phases) {
+        const intervals = currentRecord.intervals[phase.key] || [];
+        context.fillStyle = phase.color;
+
+        for (const interval of intervals) {
+            if (
+                !Array.isArray(interval)
+                || interval.length !== 2
+                || !interval.every(Number.isFinite)
+            ) {
+                continue;
+            }
+
+            const start = Math.max(0, interval[0]);
+            const end = Math.min(duration, interval[1]);
+            if (end <= start) {
+                continue;
+            }
+
+            const x = plot.left + (start / duration) * plot.width;
+            const width = ((end - start) / duration) * plot.width;
+            context.fillRect(x, plot.top, width, plot.height);
+        }
+    }
+}
 
 
 function getCurrentSampleIndex() {
@@ -300,14 +333,12 @@ function drawEcg() {
 
 
     if (!currentRecord) {
-
         const message = loadError || "Loading ECG signal…";
-
         drawMessage(ecgContext, bounds.width, bounds.height, message);
-
         return;
-
     }
+
+    drawPhaseRegions(ecgContext, plot, playbackDuration);
 
     const signalName = showingFilteredSignal ? "Filtered ECG" : "Raw ECG";
     const signalColor = showingFilteredSignal ? "#d97706" : "#087c64";
@@ -318,51 +349,37 @@ function drawEcg() {
 
 
 
-    const progress = Math.min(currentTime / playbackDuration, 1);
-
     const currentSampleIndex = getCurrentSampleIndex();
+    const progress = Math.min(currentTime / playbackDuration, 1);
+    const cursorX = plot.left + progress * plot.width;
+    const selectedSignal = getDisplayedSignal();
+    const selectedValue = Number(selectedSignal[currentSampleIndex]);
+    const amplitudeRange = signalMaximum - signalMinimum || 1;
+    const cursorY = plot.top + (
+        1 - (selectedValue - signalMinimum) / amplitudeRange
+    ) * plot.height;
 
+    traceSignal(
+        ecgContext,
+        plot,
+        signalColor,
+        2.2,
+        currentSampleIndex
+    );
 
+    ecgContext.strokeStyle = showingFilteredSignal
+        ? "rgba(217, 119, 6, 0.42)"
+        : "rgba(8, 124, 100, 0.42)";
+    ecgContext.lineWidth = 1;
+    ecgContext.beginPath();
+    ecgContext.moveTo(cursorX, plot.top);
+    ecgContext.lineTo(cursorX, plot.top + plot.height);
+    ecgContext.stroke();
 
-    if (progress > 0) {
-
-        const cursorX = plot.left + progress * plot.width;
-
-
-
-        traceSignal(
-
-            ecgContext,
-
-            plot,
-            signalColor,
-            2.2,
-
-            currentSampleIndex
-
-        );
-
-        ecgContext.strokeStyle = showingFilteredSignal
-            ? "rgba(217, 119, 6, 0.42)"
-            : "rgba(8, 124, 100, 0.42)";
-        ecgContext.lineWidth = 1;
-
-        ecgContext.beginPath();
-
-        ecgContext.moveTo(cursorX, plot.top);
-
-        ecgContext.lineTo(cursorX, plot.top + plot.height);
-
-        ecgContext.stroke();
-
-        ecgContext.fillStyle = signalColor;
-        ecgContext.beginPath();
-
-        ecgContext.arc(cursorX, plot.top, 4, 0, Math.PI * 2);
-
-        ecgContext.fill();
-
-    }
+    ecgContext.fillStyle = signalColor;
+    ecgContext.beginPath();
+    ecgContext.arc(cursorX, cursorY, 4, 0, Math.PI * 2);
+    ecgContext.fill();
 
     ecgCanvas.setAttribute(
         "aria-label",
@@ -474,7 +491,7 @@ function formatTime(time) {
 
     const minutes = Math.floor(time / 60).toString().padStart(2, "0");
 
-    const seconds = (time % 60).toFixed(1).padStart(4, "0");
+    const seconds = (time % 60).toFixed(3).padStart(6, "0");
 
 
 
@@ -498,7 +515,7 @@ function updateControls() {
 
     restartButton.disabled = recordUnavailable;
     switchSignalButton.disabled = recordUnavailable;
-    downloadReportButton.disabled = recordUnavailable;
+    viewReportButton.disabled = recordUnavailable;
     switchSignalButton.textContent = showingFilteredSignal
         ? "Show raw ECG"
         : "Show filtered ECG";
@@ -929,126 +946,202 @@ function filterEcg(signal, samplingRate) {
     return filtered;
 }
 
-function escapeLatex(value) {
-    const replacements = {
-        "\\": String.raw`\textbackslash{}`,
-        "&": String.raw`\&`,
-        "%": String.raw`\%`,
-        "$": String.raw`\$`,
-        "#": String.raw`\#`,
-        "_": String.raw`\_`,
-        "{": String.raw`\{`,
-        "}": String.raw`\}`,
-        "~": String.raw`\textasciitilde{}`,
-        "^": String.raw`\textasciicircum{}`
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function generateReportPlot(record) {
+    const width = 1000;
+    const height = 420;
+    const padding = {top: 24, right: 24, bottom: 54, left: 64};
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    const range = calculateSignalRange([...record.ecg, ...filteredSignal]);
+    const amplitudeRange = range.maximum - range.minimum || 1;
+    const duration = record.ecg.length / record.fs;
+    const phaseColors = {
+        P: "#64cbd5",
+        QRS: "#ee745f",
+        T: "#f2b84b"
     };
-    return String(value).replace(/[\\&%$#_{}~^]/g, (character) => replacements[character]);
+    const stride = Math.max(1, Math.ceil(record.ecg.length / 2500));
+    const toPoints = (signal) => {
+        const points = [];
+        const appendPoint = (sampleIndex) => {
+            const value = signal[sampleIndex];
+            const x = padding.left + (sampleIndex / (signal.length - 1)) * plotWidth;
+            const y = padding.top
+                + (1 - (value - range.minimum) / amplitudeRange) * plotHeight;
+            points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+        };
+
+        for (let sampleIndex = 0; sampleIndex < signal.length; sampleIndex += stride) {
+            appendPoint(sampleIndex);
+        }
+        if ((signal.length - 1) % stride !== 0) {
+            appendPoint(signal.length - 1);
+        }
+        return points.join(" ");
+    };
+    const grid = Array.from({length: 5}, (_, index) => {
+        const ratio = index / 4;
+        const y = padding.top + ratio * plotHeight;
+        const value = range.maximum - ratio * amplitudeRange;
+        return `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" />`
+            + `<text x="${padding.left - 10}" y="${y + 4}" text-anchor="end">${value.toFixed(2)}</text>`;
+    }).join("");
+    const timeTicks = Array.from({length: 6}, (_, index) => {
+        const ratio = index / 5;
+        const x = padding.left + ratio * plotWidth;
+        return `<line x1="${x}" y1="${padding.top}" x2="${x}" y2="${height - padding.bottom}" />`
+            + `<text x="${x}" y="${height - padding.bottom + 24}" text-anchor="middle">${(duration * ratio).toFixed(1)}</text>`;
+    }).join("");
+    const phaseRegions = Object.entries(phaseColors).flatMap(([phase, color]) => (
+        (record.intervals[phase] || []).flatMap((interval) => {
+            if (
+                !Array.isArray(interval)
+                || interval.length !== 2
+                || !interval.every(Number.isFinite)
+            ) {
+                return [];
+            }
+
+            const start = Math.max(0, interval[0]);
+            const end = Math.min(duration, interval[1]);
+            if (end <= start) {
+                return [];
+            }
+
+            const x = padding.left + (start / duration) * plotWidth;
+            const regionWidth = ((end - start) / duration) * plotWidth;
+            return [`<rect x="${x.toFixed(2)}" y="${padding.top}" width="${regionWidth.toFixed(2)}" height="${plotHeight}" fill="${color}" fill-opacity="0.28" />`];
+        })
+    )).join("");
+
+    return `<svg class="report-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Comparison of raw and filtered ECG signals">
+        <g class="phase-regions">${phaseRegions}</g>
+        <g class="chart-grid">${grid}${timeTicks}</g>
+        <polyline class="chart-raw" points="${toPoints(record.ecg)}" />
+        <polyline class="chart-filtered" points="${toPoints(filteredSignal)}" />
+        <text class="chart-axis-label" x="${width / 2}" y="${height - 8}" text-anchor="middle">Time (s)</text>
+        <text class="chart-axis-label" transform="translate(16 ${height / 2}) rotate(-90)" text-anchor="middle">Amplitude</text>
+    </svg>`;
 }
 
-function formatPlotCoordinates(signal, samplingRate) {
-    const maximumPoints = 2500;
-    const stride = Math.max(1, Math.ceil(signal.length / maximumPoints));
-    const coordinates = [];
+function generateReportPreview(record) {
+    const recordName = escapeHtml(record.label || `Record ${recordSelect.value}`);
+    const plot = generateReportPlot(record);
 
-    for (let index = 0; index < signal.length; index += stride) {
-        coordinates.push(`(${(index / samplingRate).toFixed(4)},${signal[index].toFixed(6)})`);
-    }
-
-    const finalIndex = signal.length - 1;
-    if (finalIndex % stride !== 0) {
-        coordinates.push(`(${(finalIndex / samplingRate).toFixed(4)},${signal[finalIndex].toFixed(6)})`);
-    }
-
-    return coordinates.join(" ");
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ECG report - ${recordName}</title>
+    <style>
+        :root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; color: #16324f; background: #f3f6f3; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 40px 20px; }
+        main { max-width: 1000px; margin: 0 auto; padding: 42px; background: #fff; border-radius: 18px; box-shadow: 0 18px 50px rgba(18, 55, 67, .12); }
+        header { padding: 28px; border-radius: 12px; background: #16324f; color: #fff; }
+        h1 { margin: 0 0 10px; font-size: 1.6rem; }
+        header p { margin: 0; color: #e5eef4; }
+        h2 { margin: 32px 0 14px; font-size: 1.2rem; }
+        .report-chart { display: block; width: 100%; height: auto; overflow: visible; }
+        .chart-grid line { stroke: #e6eeeb; stroke-width: 1; }
+        .chart-grid text { fill: #62747b; font-size: 12px; }
+        .chart-raw, .chart-filtered { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+        .chart-raw { stroke: #2878b5; }
+        .chart-filtered { stroke: #d97706; stroke-dasharray: 7 4; }
+        .chart-axis-label { fill: #16324f; font-size: 13px; }
+        .legend-groups { display: grid; justify-content: center; gap: 16px; margin: 12px 0 28px; color: #304852; }
+        .legend-group { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 12px; }
+        .legend-group h3 { margin: 0; color: #62747b; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+        .legend { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 0; }
+        .legend span { display: inline-flex; align-items: center; gap: 8px; }
+        .legend i { display: inline-block; flex: 0 0 26px; width: 26px; height: 0; border-top: 3px solid; }
+        .legend .raw-key { border-color: #2878b5; }
+        .legend .filtered-key { border-color: #d97706; border-top-style: dashed; }
+        .actions { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+        button { padding: 10px 16px; border: 0; border-radius: 8px; background: #16324f; color: white; font: inherit; font-weight: 650; cursor: pointer; }
+        button:hover { background: #087c64; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid #e1e8e6; text-align: left; }
+        th { background: #eaf5f3; }
+        .phase-legend i { flex-basis: 16px; width: 16px; height: 16px; border: 2px solid; border-radius: 3px; }
+        .phase-legend i.phase-p { border-color: #208b94; background: rgba(100, 203, 213, .35); }
+        .phase-legend i.phase-qrs { border-color: #b94734; background: rgba(238, 116, 95, .3); }
+        .phase-legend i.phase-t { border-color: #9a6810; background: rgba(242, 184, 75, .35); }
+        @media print {
+            @page { margin: 0; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            :root { background: #fff; }
+            body { padding: 12mm; }
+            main { max-width: none; padding: 0; border-radius: 0; box-shadow: none; }
+            .actions { display: none; }
+            .report-chart, .legend, .legend i, .phase-regions rect { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .legend-groups { break-inside: avoid; }
+        }
+        @media (max-width: 600px) { body { padding: 12px; } main { padding: 20px 14px; } header { padding: 20px; } .legend { gap: 14px; font-size: .88rem; } }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="actions"><button id="print-report" type="button">Print / Save as PDF</button></div>
+        <header>
+            <h1>ECG processing report</h1>
+            <p>${recordName} · Butterworth band-pass filter: ${FILTER_LOW_HZ}–${FILTER_HIGH_HZ} Hz · Order ${FILTER_ORDER}</p>
+        </header>
+        <section aria-labelledby="comparison-title">
+            <h2 id="comparison-title">Signal comparison</h2>
+            ${plot}
+            <div class="legend-groups">
+                <div class="legend-group" aria-label="Signal legend">
+                    <h3>Signals</h3>
+                    <div class="legend">
+                        <span><i class="raw-key"></i>Raw ECG</span>
+                        <span><i class="filtered-key"></i>Filtered ECG</span>
+                    </div>
+                </div>
+                <div class="legend-group" aria-label="ECG phase background colors">
+                    <h3>Phases</h3>
+                    <div class="legend phase-legend">
+                        <span><i class="phase-p"></i>P wave</span>
+                        <span><i class="phase-qrs"></i>QRS complex</span>
+                        <span><i class="phase-t"></i>T wave</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section aria-labelledby="parameters-title">
+            <h2 id="parameters-title">Analysis parameters</h2>
+            <table>
+                <tbody>
+                    <tr><th scope="row">Sampling rate</th><td>${record.fs} Hz</td></tr>
+                    <tr><th scope="row">Number of samples</th><td>${record.ecg.length}</td></tr>
+                    <tr><th scope="row">Butterworth filter order</th><td>${FILTER_ORDER}</td></tr>
+                    <tr><th scope="row">Pass band</th><td>${FILTER_LOW_HZ}–${FILTER_HIGH_HZ} Hz</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>`;
 }
 
-function generateLatexReport(record) {
-    const recordName = escapeLatex(record.label || `Record ${recordSelect.value}`);
-    const rawCoordinates = formatPlotCoordinates(record.ecg, record.fs);
-    const filteredCoordinates = formatPlotCoordinates(filteredSignal, record.fs);
-
-    return String.raw`\documentclass[11pt,a4paper]{article}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage[french]{babel}
-\usepackage[margin=2.2cm]{geometry}
-\usepackage[table]{xcolor}
-\usepackage{booktabs}
-\usepackage{pgfplots}
-\usepackage{lmodern}
-\pgfplotsset{compat=1.18}
-\definecolor{HeartTeal}{HTML}{087C78}
-\definecolor{HeartNavy}{HTML}{16324F}
-\definecolor{HeartBlue}{HTML}{2878B5}
-\definecolor{HeartCoral}{HTML}{EF6A55}
-\definecolor{HeartAmber}{HTML}{D97706}
-\definecolor{SoftMint}{HTML}{EAF5F3}
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{0.7em}
-\begin{document}
-\begin{center}
-\colorbox{HeartNavy}{\parbox{0.92\linewidth}{\centering
-\vspace{0.45cm}{\color{white}\Large\bfseries RAPPORT DE TRAITEMENT ECG}\\[0.2cm]
-{\color{white}\LARGE\bfseries ${recordName}}\\[0.2cm]
-{\color{white!80}\large Filtre Butterworth passe-bande
-{\color{HeartCoral}\bfseries ${FILTER_LOW_HZ}--${FILTER_HIGH_HZ} Hz}
-\quad|\quad ordre ${FILTER_ORDER}}\vspace{0.45cm}}}
-\end{center}
-\section*{\textcolor{HeartNavy}{Comparaison du signal}}
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[
-    width=\linewidth,
-    height=8cm,
-    grid=major,
-    grid style={draw=SoftMint},
-    xlabel={Temps (s)},
-    ylabel={Amplitude},
-    axis line style={HeartNavy},
-    tick label style={font=\small},
-    label style={font=\small},
-    legend style={at={(0.5,-0.2)},anchor=north,legend columns=2,draw=none},
-    line width=0.8pt
-]
-\addplot[color=HeartBlue,opacity=0.8] coordinates { ${rawCoordinates} };
-\addlegendentry{ECG brut}
-\addplot[color=HeartAmber] coordinates { ${filteredCoordinates} };
-\addlegendentry{ECG filtré}
-\end{axis}
-\end{tikzpicture}
-\end{center}
-\section*{\textcolor{HeartNavy}{Paramètres de l'analyse}}
-\rowcolors{2}{SoftMint}{white}
-\begin{tabular}{lr}
-\rowcolor{SoftMint}\textbf{Métrique} & \textbf{Valeur}\\
-Fréquence d'échantillonnage & ${record.fs} Hz\\
-Nombre d'échantillons & ${record.ecg.length}\\
-Ordre du filtre Butterworth & ${FILTER_ORDER}\\
-Bande passante & ${FILTER_LOW_HZ}--${FILTER_HIGH_HZ} Hz\\
-\bottomrule
-\end{tabular}
-\vfill
-{\small\color{HeartNavy}Rapport généré localement à partir des données statiques
-de l'enregistrement. Aucun serveur dynamique n'est nécessaire.}
-\end{document}
-`;
-}
-
-function downloadLatexReport() {
+function openReportPreview() {
     if (!currentRecord || !filteredSignal) {
         return;
     }
 
-    const report = generateLatexReport(currentRecord);
-    const blob = new Blob([report], {type: "application/x-tex;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `record-${recordSelect.value}-report.tex`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    reportPreview.srcdoc = generateReportPreview(currentRecord);
+    reportDialog.showModal();
 }
 
 async function fetchJson(path) {
@@ -1218,7 +1311,19 @@ switchSignalButton.addEventListener("click", () => {
     signalMaximum = range.maximum;
     updateInterface();
 });
-downloadReportButton.addEventListener("click", downloadLatexReport);
+viewReportButton.addEventListener("click", openReportPreview);
+reportPreview.addEventListener("load", () => {
+    const printButton = reportPreview.contentDocument.getElementById("print-report");
+    if (printButton) {
+        printButton.addEventListener("click", () => reportPreview.contentWindow.print());
+    }
+});
+closeReportButton.addEventListener("click", () => reportDialog.close());
+reportDialog.addEventListener("click", (event) => {
+    if (event.target === reportDialog) {
+        reportDialog.close();
+    }
+});
 recordSelect.addEventListener("change", () => loadRecord(recordSelect.value));
 
 speedSelect.addEventListener("change", changePlaybackSpeed);
