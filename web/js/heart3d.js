@@ -9,6 +9,7 @@ const HEART_PHASE_ANCHORS = {
 };
 
 const HEART_MODELS = {
+    // Clip fractions are profiled per asset to align QRS end with its contraction pose.
     "beating-heart": {
         label: "Modèle 3D morphologique (Vue interne / Coupe)",
         url: "assets/models/beating-heart-3d.glb",
@@ -17,7 +18,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db",
-        file: "web/assets/models/beating-heart-3d.glb"
+        file: "web/assets/models/beating-heart-3d.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "alternate-beating-heart": {
         label: "Modèle 3D externe (Rendu surfacique épuré)",
@@ -27,7 +29,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55",
-        file: "web/assets/models/animated-beating-heart.glb"
+        file: "web/assets/models/animated-beating-heart.glb",
+        syncProfile: {cycleLength: 0.3625, contractionTime: 0.3125}
     },
     "anatomical-heart": {
         label: "Modèle 3D anatomique animé (vue générale)",
@@ -37,7 +40,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6",
-        file: "web/assets/models/anatomical-heart.glb"
+        file: "web/assets/models/anatomical-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.725}
     },
     "mitral-stenosis": {
         label: "Modèle 3D pathologique (sténose mitrale)",
@@ -47,7 +51,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2",
-        file: "web/assets/models/mitral-stenosis-heart.glb"
+        file: "web/assets/models/mitral-stenosis-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.275}
     },
     "closed-heart": {
         label: "Modèle 3D anatomique fermé (vue externe)",
@@ -57,7 +62,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390",
-        file: "web/assets/models/closed-heart.glb"
+        file: "web/assets/models/closed-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "open-heart": {
         label: "Modèle 3D anatomique ouvert (vue interne)",
@@ -67,7 +73,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87",
-        file: "web/assets/models/open-heart.glb"
+        file: "web/assets/models/open-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.5}
     },
     "human-heart": {
         label: "Modèle 3D anatomique humain animé (texturé)",
@@ -77,7 +84,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf",
-        file: "web/assets/models/human-heart-animated.glb"
+        file: "web/assets/models/human-heart-animated.glb",
+        syncProfile: {cycleLength: 0.5, contractionTime: 0.2}
     },
     "realistic-heart": {
         label: "Modèle 3D cardiaque réaliste animé",
@@ -87,7 +95,8 @@ const HEART_MODELS = {
         license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f",
-        file: "web/assets/models/realistic-heart-animated.glb"
+        file: "web/assets/models/realistic-heart-animated.glb",
+        syncProfile: {cycleLength: 0.5, contractionTime: 0.5}
     }
 };
 
@@ -706,6 +715,10 @@ function getSynchronizedClipTime(state) {
         return 0;
     }
 
+    const model = viewer.selectedModelId
+        ? HEART_MODELS[viewer.selectedModelId]
+        : null;
+    const syncProfile = model ? model.syncProfile : null;
     const eventAlignedProgress = getEventAlignedCycleProgress(
         time,
         state,
@@ -717,7 +730,24 @@ function getSynchronizedClipTime(state) {
         1
     );
 
-    return cycleProgress * clipDuration;
+    if (!syncProfile) {
+        return cycleProgress * clipDuration;
+    }
+
+    const clipCycleDuration = clipDuration * syncProfile.cycleLength;
+    const clipCycleStart = (
+        clipDuration * syncProfile.contractionTime
+        - HEART_PHASE_ANCHORS.qrsEnd * clipCycleDuration
+    );
+    const normalizedCycleStart = (
+        (clipCycleStart % clipDuration) + clipDuration
+    ) % clipDuration;
+    const normalizedProgress = cycleProgress >= 1 ? 0 : cycleProgress;
+
+    return (
+        (normalizedCycleStart + normalizedProgress * clipCycleDuration)
+        % clipDuration
+    );
 }
 
 
@@ -1082,7 +1112,6 @@ export function getHeartViewerState() {
 
 
     if (viewer.modelRoot) {
-
         viewer.modelRoot.traverse((object) => {
 
             if (object.isMesh && Array.isArray(object.morphTargetInfluences)) {

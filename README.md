@@ -17,18 +17,54 @@ ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web
 
 ## Modèles 3D et crédits
 
-- **“Beating heart 3D”**, par soufiane oujihi. [Sketchfab](https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“Animated Beating Heart”**, par nitwit.friends. [Sketchfab](https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“heart”**, par shooogp. [Sketchfab](https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“Heart Mitral Stenosis”**, par Edwin3dArtist. [Sketchfab](https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“Closed Heart” et “Open Heart”**, par Ali.Zorays. [Closed model](https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390) · [Open model](https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“Human Heart.”**, par Ricardo Joel Arana. [Sketchfab](https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **“Realistic Heart Animated”**, par Pixio x AI Tutor. [Sketchfab](https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Les huit modèles disponibles dans le menu sont regroupés par vue. Le nom affiché
+dans l'interface est suivi du titre original Sketchfab, du créateur et de la
+licence. Chaque fichier GLB correspondant se trouve dans
+`web/assets/models/`.
 
-Les huit modèles sont sélectionnables dans le menu, regroupés par type de vue.
-Les crédits complets et les liens vers les licences sont également accessibles
-depuis l'onglet « Credits » du guide d'utilisation. Tous les modèles retenus
-sont téléchargeables et publiés sous CC BY 4.0.
+### Anatomie générale et vue externe
+
+- **Modèle 3D externe (Rendu surfacique épuré)** — “Animated Beating Heart”,
+  par [nitwit.friends](https://sketchfab.com/nitwit.friends). [Source
+  Sketchfab](https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55)
+  · fichier `animated-beating-heart.glb` ·
+  [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D anatomique animé (vue générale)** — “heart”, par
+  [shooogp](https://sketchfab.com/shooogp). [Source
+  Sketchfab](https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6)
+  · fichier `anatomical-heart.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D anatomique fermé (vue externe)** — “Closed Heart”, par
+  [Ali.Zorays](https://sketchfab.com/Ali.Zorays). [Source
+  Sketchfab](https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390)
+  · fichier `closed-heart.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D anatomique humain animé (texturé)** — “Human Heart.”, par
+  [Ricardo Joel Arana](https://sketchfab.com/Ricardo47291). [Source
+  Sketchfab](https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf)
+  · fichier `human-heart-animated.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D cardiaque réaliste animé** — “Realistic Heart Animated”, par
+  [Pixio x AI Tutor](https://sketchfab.com/tsiorg). [Source
+  Sketchfab](https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f)
+  · fichier `realistic-heart-animated.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+### Vues internes et pathologies
+
+- **Modèle 3D morphologique (Vue interne / Coupe)** — “Beating heart 3D”,
+  par [soufiane oujihi](https://sketchfab.com/soufianeoujihi). [Source
+  Sketchfab](https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db)
+  · fichier `beating-heart-3d.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D anatomique ouvert (vue interne)** — “Open Heart”, par
+  [Ali.Zorays](https://sketchfab.com/Ali.Zorays). [Source
+  Sketchfab](https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87)
+  · fichier `open-heart.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Modèle 3D pathologique (sténose mitrale)** — “Heart Mitral Stenosis”,
+  par [Edwin3dArtist](https://sketchfab.com/edwinaldanadesign). [Source
+  Sketchfab](https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2)
+  · fichier `mitral-stenosis-heart.glb` · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+Les modèles ont été récupérés depuis Sketchfab et leurs fiches indiquent une
+licence CC BY 4.0. Pour les redistribuer, conserver l'attribution au créateur,
+le lien vers la source et les conditions de cette licence. Les crédits et les
+liens sont également accessibles dans l'onglet « Credits » du guide du site.
 
 ## Filtrage ECG et rapport
 ### Installation rapide
@@ -89,9 +125,11 @@ clic ou un glissement sur le tracé ECG positionne le curseur à cet instant et
 synchronise le cœur sans démarrer la lecture.
 Pour tous les modèles, les limites annotées des intervalles QRS, T et P servent
 aussi de repères pour répartir le clip d'animation au cours du cycle.
-Les fractions initiales du clip associées à ces repères sont des estimations
-à valider visuellement ; elles ne constituent pas une mesure physiologique
-validée.
+Chaque modèle possède un profil de cycle propre pour compenser le décalage et
+le nombre de battements présents dans son clip ; le repère de contraction a
+été estimé en échantillonnant le mouvement de chaque modèle. Ce calage reste
+illustratif : les correspondances de poses n'ont pas fait l'objet d'une
+validation physiologique.
 Le bouton « User guide » présente les commandes du site et le format attendu
 pour ajouter des enregistrements.
 
