@@ -68,8 +68,19 @@ l'enregistrement sélectionné. Le signal filtré et le rapport sont calculés d
 le navigateur à partir des données JSON locales ; aucun serveur applicatif ni
 base de données n'est nécessaire. L'aperçu du rapport s'affiche directement
 dans la page et peut être imprimé ou enregistré en PDF depuis le navigateur.
-Le script Python sert uniquement au filtrage hors ligne et à la création du
-graphique comparatif.
+Le rapport comprend également, pour chaque onde P annotée, le délai entre son
+début et le maximum du signal ECG filtré. Un clic sur le tracé ECG permet de
+reprendre la lecture à cet instant et de synchroniser l'animation du cœur.
+Le bouton « User guide » présente les commandes du site et le format attendu
+pour ajouter des enregistrements.
+
+Les nouveaux signaux doivent être convertis au format JSON utilisé dans
+`web/data/ludb/records/` (`label`, `fs`, `ecg` et `intervals`), puis ajoutés à
+`web/data/ludb/index.json`. Les annotations P, QRS et T sont des paires de
+temps en secondes. Le filtre actuel nécessite une fréquence d'échantillonnage
+supérieure à 80 Hz et plus de 27 échantillons par enregistrement.
+`signal-processing/export_ludb_for_web.py` exporte la source LUDB du projet ;
+il ne convertit pas automatiquement d'autres formats de données.
 
 Le site peut être hébergé sur un service statique comme GitHub Pages. Le
 chargement de Three.js depuis un CDN nécessite une connexion internet pour la

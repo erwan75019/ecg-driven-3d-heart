@@ -73,9 +73,9 @@
                     <span>Developed by</span>
 
                     <p>
-                        <a href="https://github.com/erwan75019" target="_blank" rel="noopener noreferrer">Erwan Vangu</a>
+                        <a href="https://www.linkedin.com/in/erwan-v-32269428a/" target="_blank" rel="noopener noreferrer">Erwan Vangu</a>
                         ·
-                        <a href="https://github.com/clovisTiemtore" target="_blank" rel="noopener noreferrer">Clovis Tiemtore</a>
+                        <a href="https://www.linkedin.com/in/clovis-tiemtore/" target="_blank" rel="noopener noreferrer">Clovis Tiemtore</a>
                     </p>
 
                 </div>
@@ -208,6 +208,7 @@
                         id="ecg-canvas"
                         role="img"
                         aria-label="Loading the LUDB ECG signal."
+                        aria-describedby="signal-interaction-hint"
 
                     >
 
@@ -218,7 +219,9 @@
                     <div class="canvas-axis-label axis-y">Amplitude</div>
                     <div class="canvas-axis-label axis-x">Time (s)</div>
                 </div>
-
+                <p id="signal-interaction-hint" class="signal-interaction-hint">
+                    Click or drag along the ECG to position the timeline and synchronize the heart. Press Play when you want playback to continue.
+                </p>
                 <div class="transport-bar">
 
                     <label class="field-group" for="record-select">
@@ -332,6 +335,13 @@
                             disabled
                         >
                             View report
+                        </button>
+                        <button
+                            id="user-guide-button"
+                            class="control-button control-button--secondary"
+                            type="button"
+                        >
+                            User guide
                         </button>
                     </div>
                 </div>
@@ -624,6 +634,49 @@
             </button>
         </div>
         <iframe id="report-preview" title="ECG report preview"></iframe>
+    </dialog>
+
+    <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-dialog-title">
+        <div class="report-dialog__header">
+            <h2 id="guide-dialog-title">Website user guide</h2>
+            <button id="close-guide-button" class="control-button control-button--secondary" type="button">
+                Close
+            </button>
+        </div>
+        <nav class="guide-dialog__tabs" aria-label="Guide pages">
+            <button class="guide-dialog__tab is-active" type="button" data-guide-page="use" aria-pressed="true">
+                Using the website
+            </button>
+            <button class="guide-dialog__tab" type="button" data-guide-page="data" aria-pressed="false">
+                Adding ECG data
+            </button>
+        </nav>
+        <div class="guide-dialog__content">
+            <section id="guide-page-use" class="guide-page" aria-labelledby="guide-use-title">
+                <p class="eyebrow">Quick start</p>
+                <h3 id="guide-use-title">Explore a recording</h3>
+                <ol class="guide-steps">
+                    <li><strong>Choose a record.</strong> The selector loads one of the LUDB ECG recordings.</li>
+                    <li><strong>Play the cycle.</strong> Use Play, Pause, Restart, or choose a playback speed.</li>
+                    <li><strong>Jump to a moment.</strong> Hover over the ECG trace and click. Playback starts from that point, synchronized with the heart view.</li>
+                    <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
+                    <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-wave onset-to-peak measurements. Use Print / Save as PDF to export it.</li>
+                </ol>
+                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. This is an educational visualization, not a medical diagnostic tool.</p>
+            </section>
+            <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
+                <p class="eyebrow">Data workflow</p>
+                <h3 id="guide-data-title">Add a new ECG recording</h3>
+                <ol class="guide-steps">
+                    <li><strong>Prepare the signal.</strong> Use a single, evenly sampled ECG channel and keep its sampling rate in Hz. The current 0.5–40 Hz filter needs a sampling rate above 80 Hz and more than 27 samples.</li>
+                    <li><strong>Annotate the waves.</strong> Provide P, QRS and T intervals as start/end times in seconds, measured from the beginning of the recording.</li>
+                    <li><strong>Match the web format.</strong> Save one JSON file per recording with <code>label</code>, <code>fs</code>, <code>ecg</code> (the numeric samples), and <code>intervals</code> (arrays of time pairs for P, QRS and T). The format follows the existing files in <code>web/data/ludb/records/</code>.</li>
+                    <li><strong>Register each record.</strong> Add the JSON file as <code>record-ID.json</code> and add its <code>id</code> and <code>label</code> to <code>web/data/ludb/index.json</code>. IDs must be unique and match the filenames.</li>
+                    <li><strong>Check the result.</strong> Reload the site using a local web server, select the record, inspect its annotations and filtered signal, and open the report to verify the measurements.</li>
+                </ol>
+                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data; it is not a general importer for other dataset formats. Convert other datasets to the same JSON structure first, and check their usage terms and privacy requirements. The site currently reads local JSON files; it does not upload data.</p>
+            </section>
+        </div>
     </dialog>
 
 

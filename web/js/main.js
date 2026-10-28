@@ -16,6 +16,11 @@ const viewReportButton = document.getElementById("view-report-button");
 const reportDialog = document.getElementById("report-dialog");
 const reportPreview = document.getElementById("report-preview");
 const closeReportButton = document.getElementById("close-report-button");
+const userGuideButton = document.getElementById("user-guide-button");
+const guideDialog = document.getElementById("guide-dialog");
+const closeGuideButton = document.getElementById("close-guide-button");
+const guidePageButtons = document.querySelectorAll("[data-guide-page]");
+const guidePages = document.querySelectorAll(".guide-page");
 const timeDisplay = document.getElementById("time-display");
 
 const phaseDisplay = document.getElementById("phase-display");
@@ -53,6 +58,8 @@ let loadError = null;
 let animationFrameId = null;
 
 let lastTimestamp = null;
+let hoveredTime = null;
+let isScrubbing = false;
 
 
 
@@ -380,6 +387,33 @@ function drawEcg() {
     ecgContext.beginPath();
     ecgContext.arc(cursorX, cursorY, 4, 0, Math.PI * 2);
     ecgContext.fill();
+
+    if (hoveredTime !== null) {
+        const hoverSampleIndex = Math.min(
+            Math.floor(hoveredTime * currentRecord.fs),
+            selectedSignal.length - 1
+        );
+        const hoverValue = Number(selectedSignal[hoverSampleIndex]);
+        const hoverX = plot.left + (hoveredTime / playbackDuration) * plot.width;
+        const hoverY = plot.top + (
+            1 - (hoverValue - signalMinimum) / amplitudeRange
+        ) * plot.height;
+
+        ecgContext.strokeStyle = "rgba(19, 37, 46, 0.55)";
+        ecgContext.setLineDash([4, 4]);
+        ecgContext.beginPath();
+        ecgContext.moveTo(hoverX, plot.top);
+        ecgContext.lineTo(hoverX, plot.top + plot.height);
+        ecgContext.stroke();
+        ecgContext.setLineDash([]);
+
+        if (Number.isFinite(hoverValue)) {
+            ecgContext.fillStyle = "#13252e";
+            ecgContext.beginPath();
+            ecgContext.arc(hoverX, hoverY, 4, 0, Math.PI * 2);
+            ecgContext.fill();
+        }
+    }
 
     ecgCanvas.setAttribute(
         "aria-label",
@@ -1037,6 +1071,16 @@ function generateReportPlot(record) {
 function generateReportPreview(record) {
     const recordName = escapeHtml(record.label || `Record ${recordSelect.value}`);
     const plot = generateReportPlot(record);
+    const pWaveMeasurements = getPWavePeakMeasurements(record, filteredSignal);
+    const pWaveRows = pWaveMeasurements.length
+        ? pWaveMeasurements.map((measurement) => `<tr>
+                    <td>P${measurement.number}</td>
+                    <td>${measurement.onset.toFixed(3)} s</td>
+                    <td>${measurement.peakTime.toFixed(3)} s</td>
+                    <td>${(measurement.delay * 1000).toFixed(1)} ms</td>
+                    <td>${measurement.amplitude.toFixed(4)}</td>
+                </tr>`).join("")
+        : '<tr><td colspan="5">No valid P-wave annotations are available for this record.</td></tr>';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1078,6 +1122,7 @@ function generateReportPreview(record) {
         .phase-legend i.phase-p { border-color: #208b94; background: rgba(100, 203, 213, .35); }
         .phase-legend i.phase-qrs { border-color: #b94734; background: rgba(238, 116, 95, .3); }
         .phase-legend i.phase-t { border-color: #9a6810; background: rgba(242, 184, 75, .35); }
+        .measurement-note { color: #62747b; font-size: .9rem; }
         @media print {
             @page { margin: 0; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1085,6 +1130,9 @@ function generateReportPreview(record) {
             body { padding: 12mm; }
             main { max-width: none; padding: 0; border-radius: 0; box-shadow: none; }
             .actions { display: none; }
+            .p-wave-measurements, .p-wave-measurements table { break-inside: avoid; page-break-inside: avoid; }
+            .p-wave-measurements thead { display: table-header-group; }
+            .p-wave-measurements tr { break-inside: avoid; page-break-inside: avoid; }
             .report-chart, .legend, .legend i, .phase-regions rect { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .legend-groups { break-inside: avoid; }
         }
@@ -1130,6 +1178,16 @@ function generateReportPreview(record) {
                 </tbody>
             </table>
         </section>
+        <section class="p-wave-measurements" aria-labelledby="p-wave-measurements-title">
+            <h2 id="p-wave-measurements-title">P-wave onset to maximum peak</h2>
+            <p class="measurement-note">For each annotated P wave, the onset is the interval start and the peak is the highest filtered ECG sample within that interval. The distance is the elapsed time from onset to peak.</p>
+            <table>
+                <thead>
+                    <tr><th scope="col">Wave</th><th scope="col">Onset</th><th scope="col">Peak time</th><th scope="col">Onset-to-peak</th><th scope="col">Peak amplitude</th></tr>
+                </thead>
+                <tbody>${pWaveRows}</tbody>
+            </table>
+        </section>
     </main>
 </body>
 </html>`;
@@ -1142,6 +1200,142 @@ function openReportPreview() {
 
     reportPreview.srcdoc = generateReportPreview(currentRecord);
     reportDialog.showModal();
+}
+
+function getCanvasTime(event) {
+    if (!currentRecord || playbackDuration <= 0) {
+        return null;
+    }
+
+    const bounds = ecgCanvas.getBoundingClientRect();
+    const plotLeft = 28;
+    const plotWidth = bounds.width - 56;
+    const canvasX = event.clientX - bounds.left;
+
+    if (plotWidth <= 0 || canvasX < plotLeft || canvasX > plotLeft + plotWidth) {
+        return null;
+    }
+
+    return ((canvasX - plotLeft) / plotWidth) * playbackDuration;
+}
+
+function handleEcgPointerMove(event) {
+    if (isScrubbing) {
+        updateEcgScrub(event);
+        return;
+    }
+
+    hoveredTime = getCanvasTime(event);
+    drawEcg();
+}
+
+function handleEcgPointerLeave() {
+    if (isScrubbing) {
+        return;
+    }
+
+    hoveredTime = null;
+    drawEcg();
+}
+
+function updateEcgScrub(event) {
+    const selectedTime = getCanvasTime(event);
+    if (selectedTime === null) {
+        return;
+    }
+
+    currentTime = selectedTime;
+    hoveredTime = selectedTime;
+    updateInterface();
+}
+
+function startEcgScrub(event) {
+    if (event.button !== 0 || getCanvasTime(event) === null) {
+        return;
+    }
+
+    isScrubbing = true;
+    stopAnimation();
+    ecgCanvas.setPointerCapture(event.pointerId);
+    updateEcgScrub(event);
+}
+
+function finishEcgScrub(event) {
+    if (!isScrubbing) {
+        return;
+    }
+
+    updateEcgScrub(event);
+    isScrubbing = false;
+
+    if (ecgCanvas.hasPointerCapture(event.pointerId)) {
+        ecgCanvas.releasePointerCapture(event.pointerId);
+    }
+}
+
+function showGuidePage(pageName) {
+    guidePageButtons.forEach((button) => {
+        const isActive = button.dataset.guidePage === pageName;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+    });
+
+    guidePages.forEach((page) => {
+        page.hidden = page.id !== `guide-page-${pageName}`;
+    });
+}
+
+function getPWavePeakMeasurements(record, signal) {
+    const pIntervals = record.intervals && Array.isArray(record.intervals.P)
+        ? record.intervals.P
+        : [];
+
+    return pIntervals.flatMap((interval, intervalIndex) => {
+        if (
+            !Array.isArray(interval)
+            || interval.length !== 2
+            || !interval.every(Number.isFinite)
+        ) {
+            return [];
+        }
+
+        const start = Math.max(0, interval[0]);
+        const end = Math.min(interval[1], signal.length / record.fs);
+        const firstSample = Math.ceil(start * record.fs);
+        const lastSample = Math.min(
+            signal.length - 1,
+            Math.floor(end * record.fs)
+        );
+
+        if (end < start || firstSample > lastSample) {
+            return [];
+        }
+
+        let peakSampleIndex = -1;
+        let peakAmplitude = -Infinity;
+
+        for (let sampleIndex = firstSample; sampleIndex <= lastSample; sampleIndex += 1) {
+            const amplitude = Number(signal[sampleIndex]);
+            if (Number.isFinite(amplitude) && amplitude > peakAmplitude) {
+                peakSampleIndex = sampleIndex;
+                peakAmplitude = amplitude;
+            }
+        }
+
+        if (peakSampleIndex === -1) {
+            return [];
+        }
+
+        const peakTime = peakSampleIndex / record.fs;
+
+        return [{
+            number: intervalIndex + 1,
+            onset: start,
+            peakTime,
+            delay: Math.max(0, peakTime - start),
+            amplitude: peakAmplitude
+        }];
+    });
 }
 
 async function fetchJson(path) {
@@ -1323,6 +1517,33 @@ reportDialog.addEventListener("click", (event) => {
     if (event.target === reportDialog) {
         reportDialog.close();
     }
+});
+userGuideButton.addEventListener("click", () => {
+    showGuidePage("use");
+    guideDialog.showModal();
+});
+closeGuideButton.addEventListener("click", () => guideDialog.close());
+guideDialog.addEventListener("click", (event) => {
+    if (event.target === guideDialog) {
+        guideDialog.close();
+    }
+});
+guidePageButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+        showGuidePage(button.dataset.guidePage);
+    });
+});
+ecgCanvas.addEventListener("pointerdown", startEcgScrub);
+ecgCanvas.addEventListener("pointermove", handleEcgPointerMove);
+ecgCanvas.addEventListener("pointerleave", handleEcgPointerLeave);
+ecgCanvas.addEventListener("pointerup", finishEcgScrub);
+ecgCanvas.addEventListener("pointercancel", () => {
+    isScrubbing = false;
+    hoveredTime = null;
+    drawEcg();
+});
+ecgCanvas.addEventListener("lostpointercapture", () => {
+    isScrubbing = false;
 });
 recordSelect.addEventListener("change", () => loadRecord(recordSelect.value));
 

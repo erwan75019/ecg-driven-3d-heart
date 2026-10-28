@@ -405,6 +405,13 @@ a:focus-visible {
     display: block;
     width: 100%;
     height: 100%;
+    cursor: crosshair;
+}
+
+.signal-interaction-hint {
+    margin: 9px 3px 0;
+    color: var(--ink-soft);
+    font-size: 0.75rem;
 }
 
 .canvas-axis-label {
@@ -468,7 +475,25 @@ a:focus-visible {
     box-shadow: 0 24px 80px rgba(12, 38, 48, 0.3);
 }
 
+.guide-dialog {
+    width: min(820px, calc(100vw - 32px));
+    max-width: none;
+    max-height: min(820px, calc(100vh - 32px));
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 16px;
+    background: var(--paper);
+    box-shadow: 0 24px 80px rgba(12, 38, 48, 0.3);
+}
+
 .report-dialog::backdrop {
+    background: rgba(12, 38, 48, 0.68);
+    backdrop-filter: blur(3px);
+}
+
+.guide-dialog::backdrop {
     background: rgba(12, 38, 48, 0.68);
     backdrop-filter: blur(3px);
 }
@@ -489,6 +514,80 @@ a:focus-visible {
 
 .report-dialog__header .control-button {
     min-height: 38px;
+}
+
+.guide-dialog__tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px 0;
+}
+
+.guide-dialog__tab {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 10px 10px 0 0;
+    background: #eaf0ee;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 0 15px;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.guide-dialog__tab.is-active {
+    border-color: var(--line);
+    border-bottom-color: var(--card);
+    background: var(--card);
+    color: var(--mint-dark);
+}
+
+.guide-dialog__content {
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    border-top: 1px solid var(--line);
+    background: var(--card);
+    padding: 25px 28px 30px;
+}
+
+.guide-page h3 {
+    margin: 5px 0 18px;
+    color: var(--night);
+    font-size: 1.35rem;
+    letter-spacing: -0.025em;
+}
+
+.guide-steps {
+    display: grid;
+    gap: 14px;
+    padding-left: 1.35rem;
+    color: var(--ink-soft);
+}
+
+.guide-steps li {
+    padding-left: 4px;
+}
+
+.guide-steps strong {
+    color: var(--ink);
+}
+
+.guide-steps code,
+.guide-note code {
+    border-radius: 4px;
+    background: #edf4f1;
+    color: var(--mint-dark);
+    padding: 1px 4px;
+    font-size: 0.9em;
+}
+
+.guide-note {
+    margin-top: 22px;
+    border-left: 3px solid var(--mint-dark);
+    background: #f0f7f4;
+    color: var(--ink-soft);
+    padding: 12px 15px;
+    font-size: 0.82rem;
 }
 
 #report-preview {
@@ -1191,6 +1290,15 @@ span.phase-legend__t,
         padding: 18px;
     }
 
+    .guide-dialog__tabs {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .guide-dialog__content {
+        padding: 22px 18px;
+    }
+
     #ecg-container {
         height: 330px;
     }
@@ -1293,6 +1401,16 @@ span.phase-legend__t,
     .signal-actions {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .guide-dialog__tabs {
+        gap: 6px;
+    }
+
+    .guide-dialog__tab {
+        flex: 1;
+        padding: 0 8px;
+        font-size: 0.72rem;
     }
 
     .learning-strip > div {
