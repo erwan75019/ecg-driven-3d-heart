@@ -1,17 +1,110 @@
-const MODEL_URL = "assets/models/heart.glb";
+const DEFAULT_HEART_MODEL_ID = "beating-heart";
+
+const HEART_PHASE_ANCHORS = {
+    qrsEnd: 0.24,
+    tStart: 0.42,
+    tEnd: 0.66,
+    pStart: 0.82,
+    pEnd: 0.92
+};
+
+const HEART_MODELS = {
+    // Clip fractions are profiled per asset to align QRS end with its contraction pose.
+    "beating-heart": {
+        label: "Modèle 3D morphologique (Vue interne / Coupe)",
+        url: "assets/models/beating-heart-3d.glb",
+        author: "soufiane oujihi",
+        authorUrl: "https://sketchfab.com/soufianeoujihi",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db",
+        file: "web/assets/models/beating-heart-3d.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0}
+    },
+    "alternate-beating-heart": {
+        label: "Modèle 3D externe (Rendu surfacique épuré)",
+        url: "assets/models/animated-beating-heart.glb",
+        author: "nitwit.friends",
+        authorUrl: "https://sketchfab.com/nitwit.friends",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55",
+        file: "web/assets/models/animated-beating-heart.glb",
+        syncProfile: {cycleLength: 0.3625, contractionTime: 0.3125}
+    },
+    "anatomical-heart": {
+        label: "Modèle 3D anatomique animé (vue générale)",
+        url: "assets/models/anatomical-heart.glb",
+        author: "shooogp",
+        authorUrl: "https://sketchfab.com/shooogp",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6",
+        file: "web/assets/models/anatomical-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.725}
+    },
+    "mitral-stenosis": {
+        label: "Modèle 3D pathologique (sténose mitrale)",
+        url: "assets/models/mitral-stenosis-heart.glb",
+        author: "Edwin3dArtist",
+        authorUrl: "https://sketchfab.com/edwinaldanadesign",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2",
+        file: "web/assets/models/mitral-stenosis-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.275}
+    },
+    "closed-heart": {
+        label: "Modèle 3D anatomique fermé (vue externe)",
+        url: "assets/models/closed-heart.glb",
+        author: "Ali.Zorays",
+        authorUrl: "https://sketchfab.com/Ali.Zorays",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390",
+        file: "web/assets/models/closed-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0}
+    },
+    "open-heart": {
+        label: "Modèle 3D anatomique ouvert (vue interne)",
+        url: "assets/models/open-heart.glb",
+        author: "Ali.Zorays",
+        authorUrl: "https://sketchfab.com/Ali.Zorays",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87",
+        file: "web/assets/models/open-heart.glb",
+        syncProfile: {cycleLength: 1, contractionTime: 0.5}
+    },
+    "human-heart": {
+        label: "Modèle 3D anatomique humain animé (texturé)",
+        url: "assets/models/human-heart-animated.glb",
+        author: "Ricardo Joel Arana",
+        authorUrl: "https://sketchfab.com/Ricardo47291",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf",
+        file: "web/assets/models/human-heart-animated.glb",
+        syncProfile: {cycleLength: 0.5, contractionTime: 0.2}
+    },
+    "realistic-heart": {
+        label: "Modèle 3D cardiaque réaliste animé",
+        url: "assets/models/realistic-heart-animated.glb",
+        author: "Pixio x AI Tutor",
+        authorUrl: "https://sketchfab.com/tsiorg",
+        license: "Creative Commons Attribution 4.0 (CC BY 4.0)",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        source: "https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f",
+        file: "web/assets/models/realistic-heart-animated.glb",
+        syncProfile: {cycleLength: 0.5, contractionTime: 0.5}
+    }
+};
 
 const TARGET_MODEL_SIZE = 2;
 
-const TARGET_FRAME_OCCUPANCY = 0.9;
+const TARGET_FRAME_OCCUPANCY = 0.76;
 
-const MODEL_VERTICAL_CENTER_OFFSET = 0.01;
 const HEART_SYNC_EVENT = "ecg-heart-sync";
-
-// The supplied GLB contains one complete morph-based cardiac cycle.
-// Geometry inspection shows that visible contraction starts near 0.133 s
-// and reaches maximum contraction around 0.400 s.
-const CLIP_CONTRACTION_START_TIME = 0.13333334;
-const CLIP_MAX_CONTRACTION_TIME = 0.4;
 
 const DEFAULT_MODEL_ROTATION = {
 
@@ -32,6 +125,12 @@ const viewer = {
     animationClip: null,
 
     animationClips: [],
+
+    modelLoadRequestId: 0,
+
+    modelScene: null,
+
+    selectedModelId: null,
 
     camera: null,
 
@@ -98,6 +197,32 @@ function updateStatus(container, state, message) {
 
 }
 
+function updateModelAttribution(model) {
+    const nameElement = document.getElementById("heart-model-info-name");
+    const authorElement = document.getElementById("heart-model-info-author");
+    const licenseElement = document.getElementById("heart-model-info-license");
+    const fileElement = document.getElementById("heart-model-info-file");
+    const sourceElement = document.getElementById("heart-model-info-source");
+
+    if (
+        !nameElement
+        || !authorElement
+        || !licenseElement
+        || !fileElement
+        || !sourceElement
+    ) {
+        return;
+    }
+
+    nameElement.textContent = model.label;
+    authorElement.textContent = model.author;
+    authorElement.href = model.authorUrl;
+    licenseElement.textContent = model.license;
+    licenseElement.href = model.licenseUrl;
+    fileElement.textContent = model.file;
+    sourceElement.href = model.source;
+}
+
 
 
 function fitCameraToModel() {
@@ -112,7 +237,7 @@ function fitCameraToModel() {
 
     const THREE = viewer.THREE;
 
-    const box = new THREE.Box3().setFromObject(viewer.modelRoot);
+    const box = new THREE.Box3().setFromObject(viewer.modelRoot, true);
 
 
 
@@ -129,10 +254,6 @@ function fitCameraToModel() {
     const center = box.getCenter(new THREE.Vector3());
 
     const modelSize = Math.max(size.x, size.y, size.z);
-
-    center.y += size.y * MODEL_VERTICAL_CENTER_OFFSET;
-
-
 
     const verticalFov = THREE.MathUtils.degToRad(viewer.camera.fov);
 
@@ -304,8 +425,11 @@ function centerAndScaleModel(model) {
 
     const THREE = viewer.THREE;
 
-    const sourceBox = new THREE.Box3().setFromObject(model);
+    const modelOffset = new THREE.Group();
+    modelOffset.add(model);
+    modelOffset.updateMatrixWorld(true);
 
+    const sourceBox = new THREE.Box3().setFromObject(modelOffset, true);
 
 
     if (sourceBox.isEmpty()) {
@@ -332,9 +456,8 @@ function centerAndScaleModel(model) {
 
 
 
-    model.position.sub(sourceCenter);
-
-
+    modelOffset.position.sub(sourceCenter);
+    modelOffset.updateMatrixWorld(true);
 
     const modelRoot = new THREE.Group();
 
@@ -352,7 +475,7 @@ function centerAndScaleModel(model) {
 
     );
 
-    modelRoot.add(model);
+    modelRoot.add(modelOffset);
 
     modelRoot.updateMatrixWorld(true);
 
@@ -360,6 +483,58 @@ function centerAndScaleModel(model) {
 
     return modelRoot;
 
+}
+
+function disposeModelResources(model) {
+    const geometries = new Set();
+    const materials = new Set();
+    const textures = new Set();
+
+    model.traverse((object) => {
+        if (object.geometry && !geometries.has(object.geometry)) {
+            geometries.add(object.geometry);
+            object.geometry.dispose();
+        }
+
+        const objectMaterials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+
+        for (const material of objectMaterials) {
+            if (!material || materials.has(material)) {
+                continue;
+            }
+
+            materials.add(material);
+            for (const value of Object.values(material)) {
+                if (value && value.isTexture && !textures.has(value)) {
+                    textures.add(value);
+                    value.dispose();
+                }
+            }
+            material.dispose();
+        }
+    });
+}
+
+function removeCurrentModel() {
+    if (viewer.mixer && viewer.modelScene) {
+        viewer.mixer.stopAllAction();
+        viewer.mixer.uncacheRoot(viewer.modelScene);
+    }
+
+    if (viewer.modelRoot) {
+        viewer.scene.remove(viewer.modelRoot);
+        disposeModelResources(viewer.modelRoot);
+    }
+
+    viewer.animationAction = null;
+    viewer.animationClip = null;
+    viewer.animationClips = [];
+    viewer.meshNames = [];
+    viewer.mixer = null;
+    viewer.modelRoot = null;
+    viewer.modelScene = null;
 }
 
 
@@ -425,6 +600,91 @@ function getCurrentCycleWindow(time, qrsIntervals, recordDuration) {
     return null;
 }
 
+function getFirstIntervalAfter(intervals, afterTime, beforeTime) {
+    if (!Array.isArray(intervals)) {
+        return null;
+    }
+
+    return intervals
+        .filter((interval) => (
+            Array.isArray(interval)
+            && interval.length === 2
+            && interval.every(Number.isFinite)
+            && interval[1] >= interval[0]
+            && interval[0] >= afterTime
+            && interval[1] <= beforeTime
+        ))
+        .sort((first, second) => first[0] - second[0])[0] || null;
+}
+
+
+function getEventAlignedCycleProgress(time, state, cycle, phaseAnchors) {
+    const qrsInterval = Array.isArray(state.qrsIntervals)
+        ? state.qrsIntervals.find((interval) => (
+            Array.isArray(interval)
+            && interval.length === 2
+            && interval.every(Number.isFinite)
+            && Math.abs(interval[0] - cycle.start) < 1e-6
+            && interval[1] > interval[0]
+            && interval[1] < cycle.end
+        ))
+        : null;
+
+    if (!qrsInterval) {
+        return null;
+    }
+
+    const anchors = [{time: cycle.start, progress: 0}];
+    const addAnchor = (anchorTime, progress) => {
+        const previousAnchor = anchors[anchors.length - 1];
+        if (
+            Number.isFinite(anchorTime)
+            && anchorTime > previousAnchor.time
+            && anchorTime < cycle.end
+            && Number.isFinite(progress)
+            && progress > previousAnchor.progress
+            && progress < 1
+        ) {
+            anchors.push({time: anchorTime, progress});
+        }
+    };
+
+    addAnchor(qrsInterval[1], phaseAnchors.qrsEnd);
+
+    const tInterval = getFirstIntervalAfter(
+        state.tIntervals,
+        qrsInterval[1],
+        cycle.end
+    );
+    if (tInterval) {
+        addAnchor(tInterval[0], phaseAnchors.tStart);
+        addAnchor(tInterval[1], phaseAnchors.tEnd);
+    }
+
+    const pInterval = getFirstIntervalAfter(
+        state.pIntervals,
+        tInterval ? tInterval[1] : qrsInterval[1],
+        cycle.end
+    );
+    if (pInterval) {
+        addAnchor(pInterval[0], phaseAnchors.pStart);
+        addAnchor(pInterval[1], phaseAnchors.pEnd);
+    }
+
+    anchors.push({time: cycle.end, progress: 1});
+
+    for (let index = 0; index < anchors.length - 1; index += 1) {
+        const start = anchors[index];
+        const end = anchors[index + 1];
+        if (time <= end.time) {
+            const segmentProgress = (time - start.time) / (end.time - start.time);
+            return start.progress + segmentProgress * (end.progress - start.progress);
+        }
+    }
+
+    return 1;
+}
+
 
 function getSynchronizedClipTime(state) {
     if (!viewer.animationClip || !state) {
@@ -455,18 +715,39 @@ function getSynchronizedClipTime(state) {
         return 0;
     }
 
-    const cycleProgress = Math.min(
+    const model = viewer.selectedModelId
+        ? HEART_MODELS[viewer.selectedModelId]
+        : null;
+    const syncProfile = model ? model.syncProfile : null;
+    const eventAlignedProgress = getEventAlignedCycleProgress(
+        time,
+        state,
+        cycle,
+        HEART_PHASE_ANCHORS
+    );
+    const cycleProgress = eventAlignedProgress ?? Math.min(
         Math.max((time - cycle.start) / (cycle.end - cycle.start), 0),
         1
     );
 
-    // QRS onset lands on the visible start of ventricular contraction
-    // inside the original GLB clip. The clip start/end poses are identical,
-    // so the wrap remains continuous from beat to beat.
-    const contractionStartFraction = CLIP_CONTRACTION_START_TIME / clipDuration;
-    const clipProgress = (cycleProgress + contractionStartFraction) % 1;
+    if (!syncProfile) {
+        return cycleProgress * clipDuration;
+    }
 
-    return clipProgress * clipDuration;
+    const clipCycleDuration = clipDuration * syncProfile.cycleLength;
+    const clipCycleStart = (
+        clipDuration * syncProfile.contractionTime
+        - HEART_PHASE_ANCHORS.qrsEnd * clipCycleDuration
+    );
+    const normalizedCycleStart = (
+        (clipCycleStart % clipDuration) + clipDuration
+    ) % clipDuration;
+    const normalizedProgress = cycleProgress >= 1 ? 0 : cycleProgress;
+
+    return (
+        (normalizedCycleStart + normalizedProgress * clipCycleDuration)
+        % clipDuration
+    );
 }
 
 
@@ -518,55 +799,53 @@ if (window.__ecgHeartSyncState) {
 }
 
 
-function loadHeartModel(container, GLTFLoader) {
+async function loadHeartModel(container, GLTFLoader, modelId) {
+    const model = HEART_MODELS[modelId];
+    if (!model) {
+        throw new Error(`Unknown 3D heart model: ${modelId}`);
+    }
 
-    const loader = new GLTFLoader();
+    const requestId = viewer.modelLoadRequestId + 1;
+    viewer.modelLoadRequestId = requestId;
+    updateStatus(container, "loading", `Loading ${model.label}…`);
 
-
-
-    loader.load(
-
-        MODEL_URL,
-
-        (gltf) => {
-
-            try {
-
-                viewer.animationClips = gltf.animations || [];
-
-                prepareModel(gltf.scene);
-
-                viewer.modelRoot = centerAndScaleModel(gltf.scene);
-
-                viewer.scene.add(viewer.modelRoot);
-                initializeHeartAnimation(gltf);
-
-                fitCameraToModel();
-
-                updateStatus(container, "ready", "");
-
-            } catch (error) {
-
-                console.error("Unable to prepare the 3D heart model.", error);
-
-                updateStatus(container, "error", "3D heart model could not be displayed.");
-
-            }
-
-        },
-
-        undefined,
-
-        (error) => {
-
-            console.error("Unable to load the 3D heart model.", error);
-
-            updateStatus(container, "error", "3D heart model could not be loaded.");
-
+    try {
+        const gltf = await new GLTFLoader().loadAsync(model.url);
+        if (requestId !== viewer.modelLoadRequestId) {
+            disposeModelResources(gltf.scene);
+            return;
         }
 
-    );
+        try {
+            removeCurrentModel();
+            viewer.animationClips = gltf.animations || [];
+            prepareModel(gltf.scene);
+            viewer.modelRoot = centerAndScaleModel(gltf.scene);
+            viewer.modelScene = gltf.scene;
+            viewer.scene.add(viewer.modelRoot);
+            initializeHeartAnimation(gltf);
+            fitCameraToModel();
+            viewer.selectedModelId = modelId;
+            applySynchronizedHeartPose();
+            updateModelAttribution(model);
+            updateStatus(container, "ready", "");
+        } catch (error) {
+            removeCurrentModel();
+            disposeModelResources(gltf.scene);
+            throw error;
+        }
+    } catch (error) {
+        if (requestId !== viewer.modelLoadRequestId) {
+            return;
+        }
 
+        console.error(`Unable to load the 3D heart model "${model.label}".`, error);
+        const modelSelect = document.getElementById("heart-model-select");
+        if (viewer.selectedModelId && modelSelect) {
+            modelSelect.value = viewer.selectedModelId;
+        }
+        updateStatus(container, "error", `${model.label} could not be loaded.`);
+    }
 }
 
 
@@ -775,7 +1054,36 @@ async function initializeHeartViewer() {
 
         viewer.renderer.setAnimationLoop(renderViewer);
 
-        loadHeartModel(container, GLTFLoader);
+        const modelSelect = document.getElementById("heart-model-select");
+        const infoButton = document.getElementById("heart-model-info-button");
+        const infoDialog = document.getElementById("heart-model-info-dialog");
+        const closeInfoButton = document.getElementById("close-heart-model-info");
+        if (modelSelect) {
+            modelSelect.value = DEFAULT_HEART_MODEL_ID;
+        }
+        const initialModelId = DEFAULT_HEART_MODEL_ID;
+
+        loadHeartModel(container, GLTFLoader, initialModelId);
+        if (modelSelect) {
+            modelSelect.addEventListener("change", () => {
+                loadHeartModel(container, GLTFLoader, modelSelect.value);
+            });
+        }
+        if (infoButton && infoDialog) {
+            infoButton.addEventListener("click", () => {
+                infoDialog.showModal();
+            });
+            infoDialog.addEventListener("click", (event) => {
+                if (event.target === infoDialog) {
+                    infoDialog.close();
+                }
+            });
+        }
+        if (closeInfoButton && infoDialog) {
+            closeInfoButton.addEventListener("click", () => {
+                infoDialog.close();
+            });
+        }
 
     } catch (error) {
 
@@ -804,7 +1112,6 @@ export function getHeartViewerState() {
 
 
     if (viewer.modelRoot) {
-
         viewer.modelRoot.traverse((object) => {
 
             if (object.isMesh && Array.isArray(object.morphTargetInfluences)) {
@@ -831,9 +1138,6 @@ export function getHeartViewerState() {
 
         activeAnimationTime: viewer.mixer ? viewer.mixer.time : null,
 
-        contractionStartTime: CLIP_CONTRACTION_START_TIME,
-
-        maxContractionTime: CLIP_MAX_CONTRACTION_TIME,
 
         cameraPosition: viewer.camera
 
@@ -857,7 +1161,10 @@ export function getHeartViewerState() {
 
         modelLoaded: viewer.modelRoot !== null,
 
-        modelUrl: MODEL_URL,
+        modelUrl: viewer.selectedModelId
+            ? HEART_MODELS[viewer.selectedModelId].url
+            : null,
+        selectedModelId: viewer.selectedModelId,
 
         morphTargetWeights,
 

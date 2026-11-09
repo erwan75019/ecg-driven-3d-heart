@@ -73,9 +73,9 @@
                     <span>Developed by</span>
 
                     <p>
-                        <a href="https://github.com/erwan75019" target="_blank" rel="noopener noreferrer">Erwan Vangu</a>
+                        <a href="https://www.linkedin.com/in/erwan-v-32269428a/" target="_blank" rel="noopener noreferrer">Erwan Vangu</a>
                         ·
-                        <a href="https://github.com/clovisTiemtore" target="_blank" rel="noopener noreferrer">Clovis Tiemtore</a>
+                        <a href="https://www.linkedin.com/in/clovis-tiemtore/" target="_blank" rel="noopener noreferrer">Clovis Tiemtore</a>
                     </p>
 
                 </div>
@@ -208,6 +208,7 @@
                         id="ecg-canvas"
                         role="img"
                         aria-label="Loading the LUDB ECG signal."
+                        aria-describedby="signal-interaction-hint"
 
                     >
 
@@ -218,7 +219,6 @@
                     <div class="canvas-axis-label axis-y">Amplitude</div>
                     <div class="canvas-axis-label axis-x">Time (s)</div>
                 </div>
-
                 <div class="transport-bar">
 
                     <label class="field-group" for="record-select">
@@ -333,6 +333,13 @@
                         >
                             View report
                         </button>
+                        <button
+                            id="user-guide-button"
+                            class="control-button control-button--secondary"
+                            type="button"
+                        >
+                            User guide
+                        </button>
                     </div>
                 </div>
 
@@ -360,9 +367,38 @@
 
                         </div>
 
+                        <button
+                            id="heart-model-info-button"
+                            class="control-button control-button--secondary heart-model-info-button"
+                            type="button"
+                            aria-haspopup="dialog"
+                            aria-controls="heart-model-info-dialog"
+                        >
+                            <span class="heart-model-info-button__icon" aria-hidden="true">i</span>
+                            Infos
+                        </button>
+
                     </div>
 
-
+                    <label class="field-group heart-model-picker" for="heart-model-select">
+                        <span>Heart model</span>
+                        <span class="select-wrapper">
+                            <select id="heart-model-select" name="heart-model">
+                                <optgroup label="Anatomie générale et vue externe">
+                                    <option value="alternate-beating-heart">Modèle 3D externe (Rendu surfacique épuré)</option>
+                                    <option value="anatomical-heart">Modèle 3D anatomique animé (vue générale)</option>
+                                    <option value="closed-heart">Modèle 3D anatomique fermé (vue externe)</option>
+                                    <option value="human-heart">Modèle 3D anatomique humain animé (texturé)</option>
+                                    <option value="realistic-heart">Modèle 3D cardiaque réaliste animé</option>
+                                </optgroup>
+                                <optgroup label="Vues internes et pathologies">
+                                    <option value="beating-heart" selected>Modèle 3D morphologique (Vue interne / Coupe)</option>
+                                    <option value="open-heart">Modèle 3D anatomique ouvert (vue interne)</option>
+                                    <option value="mitral-stenosis">Modèle 3D pathologique (sténose mitrale)</option>
+                                </optgroup>
+                            </select>
+                        </span>
+                    </label>
 
                     <div id="heart-container" aria-label="Interactive three-dimensional heart viewer"></div>
 
@@ -626,6 +662,103 @@
         <iframe id="report-preview" title="ECG report preview"></iframe>
     </dialog>
 
+    <dialog id="heart-model-info-dialog" class="heart-model-info-dialog" aria-labelledby="heart-model-info-title">
+        <div class="report-dialog__header">
+            <h2 id="heart-model-info-title">À propos du modèle 3D</h2>
+            <button id="close-heart-model-info" class="control-button control-button--secondary" type="button">
+                Fermer
+            </button>
+        </div>
+        <div class="heart-model-info-content">
+            <p class="eyebrow">Modèle affiché</p>
+            <h3 id="heart-model-info-name">Modèle 3D morphologique (Vue interne / Coupe)</h3>
+            <dl class="heart-model-info-facts">
+                <div>
+                    <dt>Auteur</dt>
+                    <dd><a id="heart-model-info-author" href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">soufiane oujihi</a></dd>
+                </div>
+                <div>
+                    <dt>Licence</dt>
+                    <dd><a id="heart-model-info-license" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></dd>
+                </div>
+                <div>
+                    <dt>Fichier local</dt>
+                    <dd><code id="heart-model-info-file">web/assets/models/beating-heart-3d.glb</code></dd>
+                </div>
+            </dl>
+            <a
+                id="heart-model-info-source"
+                class="info-card__link"
+                href="https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Voir la source sur Sketchfab
+            </a>
+            <p class="guide-note">Merci de créditer l’auteur et de respecter les conditions de la licence lors du partage du modèle.</p>
+        </div>
+    </dialog>
+
+    <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-dialog-title">
+        <div class="report-dialog__header">
+            <h2 id="guide-dialog-title">Website user guide</h2>
+            <button id="close-guide-button" class="control-button control-button--secondary" type="button">
+                Close
+            </button>
+        </div>
+        <nav class="guide-dialog__tabs" aria-label="Guide pages">
+            <button class="guide-dialog__tab is-active" type="button" data-guide-page="use" aria-pressed="true">
+                Using the website
+            </button>
+            <button class="guide-dialog__tab" type="button" data-guide-page="data" aria-pressed="false">
+                Adding ECG data
+            </button>
+            <button class="guide-dialog__tab" type="button" data-guide-page="credits" aria-pressed="false">
+                Credits
+            </button>
+        </nav>
+        <div class="guide-dialog__content">
+            <section id="guide-page-use" class="guide-page" aria-labelledby="guide-use-title">
+                <p class="eyebrow">Quick start</p>
+                <h3 id="guide-use-title">Explore a recording</h3>
+                <ol class="guide-steps">
+                    <li><strong>Choose a record and heart model.</strong> The selectors load an ECG and one of the available animated heart models.</li>
+                    <li><strong>Play the cycle.</strong> Use Play, Pause, Restart, or choose a playback speed.</li>
+                    <li><strong>Position the timeline.</strong> Click or drag along the ECG trace to move the cursor to that moment. This does not start playback; use Play to resume, with the heart synchronized to the selected time.</li>
+                    <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
+                    <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
+                </ol>
+                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline. This is an educational visualization, not a medical diagnostic tool.</p>
+            </section>
+            <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
+                <p class="eyebrow">Data workflow</p>
+                <h3 id="guide-data-title">Add a new ECG recording</h3>
+                <ol class="guide-steps">
+                    <li><strong>Prepare the signal.</strong> Use a single, evenly sampled ECG channel and keep its sampling rate in Hz. The current 0.5–40 Hz filter needs a sampling rate above 80 Hz and more than 27 samples.</li>
+                    <li><strong>Annotate the waves.</strong> Provide P, QRS and T intervals as start/end times in seconds, measured from the beginning of the recording.</li>
+                    <li><strong>Match the web format.</strong> Save one JSON file per recording with <code>label</code>, <code>fs</code>, <code>ecg</code> (the numeric samples), and <code>intervals</code> (arrays of time pairs for P, QRS and T). The format follows the existing files in <code>web/data/ludb/records/</code>.</li>
+                    <li><strong>Register each record.</strong> Add the JSON file as <code>record-ID.json</code> and add its <code>id</code> and <code>label</code> to <code>web/data/ludb/index.json</code>. IDs must be unique and match the filenames.</li>
+                    <li><strong>Check the result.</strong> Reload the site using a local web server, select the record, inspect its annotations and filtered signal, and open the report to verify the measurements.</li>
+                </ol>
+                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data; it is not a general importer for other dataset formats. Convert other datasets to the same JSON structure first, and check their usage terms and privacy requirements. The site currently reads local JSON files; it does not upload data.</p>
+            </section>
+            <section id="guide-page-credits" class="guide-page" aria-labelledby="guide-credits-title" hidden>
+                <p class="eyebrow">Attribution</p>
+                <h3 id="guide-credits-title">Crédits et Remerciements</h3>
+                <ul class="guide-steps guide-credits-list">
+                    <li><strong>“Beating heart 3D” by soufiane oujihi.</strong> <a href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Animated Beating Heart” by nitwit.friends.</strong> <a href="https://sketchfab.com/nitwit.friends" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“heart” by shooogp.</strong> <a href="https://sketchfab.com/shooogp" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Heart Mitral Stenosis” by Edwin3dArtist.</strong> <a href="https://sketchfab.com/edwinaldanadesign" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Closed Heart” and “Open Heart” by Ali.Zorays.</strong> <a href="https://sketchfab.com/Ali.Zorays" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390" target="_blank" rel="noopener noreferrer">Closed model</a> · <a href="https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87" target="_blank" rel="noopener noreferrer">Open model</a> · Both under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Human Heart.” by Ricardo Joel Arana.</strong> <a href="https://sketchfab.com/Ricardo47291" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                    <li><strong>“Realistic Heart Animated” by Pixio x AI Tutor.</strong> <a href="https://sketchfab.com/tsiorg" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
+                </ul>
+                <p class="guide-note">The model files are provided in <code>web/assets/models/</code>. All selected models are downloadable under CC BY 4.0. Please retain these attributions and the license terms when redistributing them.</p>
+            </section>
+        </div>
+    </dialog>
+
 
 
     <script type="importmap">
@@ -646,7 +779,7 @@
 
     <script src="js/main.js?v=20261011-clean-print-header"></script>
 
-    <script type="module" src="js/heart3d.js?v=20261008-synced-heart"></script>
+    <script type="module" src="js/heart3d.js?v=20261028-centered-alternate-heart"></script>
 
 </body>
 
