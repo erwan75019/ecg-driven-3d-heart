@@ -36,15 +36,17 @@ const HEART_SYNC_EVENT = "ecg-heart-sync";
 const FILTER_LOW_HZ = 0.5;
 const FILTER_HIGH_HZ = 40;
 const FILTER_ORDER = 4;
+const ECG_Y_MINIMUM = -1.2;
+const ECG_Y_MAXIMUM = 1.2;
 
 let currentRecord = null;
 let filteredSignal = null;
 let showingFilteredSignal = false;
 let playbackDuration = 0;
 
-let signalMinimum = 0;
+const signalMinimum = ECG_Y_MINIMUM;
 
-let signalMaximum = 1;
+const signalMaximum = ECG_Y_MAXIMUM;
 
 let currentTime = 0;
 
@@ -1420,13 +1422,6 @@ async function loadRecord(recordId) {
         filteredSignal = recordFilteredSignal;
         playbackDuration = record.ecg.length / record.fs;
 
-        const range = calculateSignalRange(getDisplayedSignal());
-        signalMinimum = range.minimum;
-
-        signalMaximum = range.maximum;
-
-
-
         ecgCanvas.setAttribute(
 
             "aria-label",
@@ -1526,9 +1521,6 @@ switchSignalButton.addEventListener("click", () => {
     }
 
     showingFilteredSignal = !showingFilteredSignal;
-    const range = calculateSignalRange(getDisplayedSignal());
-    signalMinimum = range.minimum;
-    signalMaximum = range.maximum;
     updateInterface();
 });
 viewReportButton.addEventListener("click", openReportPreview);
