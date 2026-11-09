@@ -162,6 +162,56 @@ supérieure à 80 Hz et plus de 27 échantillons par enregistrement.
 `signal-processing/export_ludb_for_web.py` exporte la source LUDB du projet ;
 il ne convertit pas automatiquement d'autres formats de données.
 
+### Convertir un ECG CSV externe
+
+Le script `signal-processing/convert_ecg_csv.py` convertit un CSV mono-canal en
+un enregistrement JSON compatible avec le site. Il utilise uniquement la
+bibliothèque standard Python ; aucun paquet supplémentaire n'est requis pour
+cette conversion. Il prend en charge le CSV ; WFDB n'est pas ajouté comme
+dépendance au projet.
+
+Le CSV doit contenir un échantillon numérique par ligne dans la colonne
+sélectionnée. Par défaut, la première colonne est utilisée. Avec un en-tête,
+indiquez `--skip-header`; `--column` sélectionne une colonne par indice, à
+partir de zéro. La fréquence `--fs` est obligatoire et doit être supérieure à
+80 Hz pour le filtre actuel du site.
+
+Exemple PowerShell, depuis la racine du dépôt. Ici, `201` est un nouvel
+identifiant après les 200 enregistrements LUDB existants :
+
+```text
+python signal-processing/convert_ecg_csv.py recordings/patient-01.csv web/data/ludb/records/record-201.json --fs 500 --label "Patient 01" --column 1 --skip-header
+```
+
+Le JSON est généré au chemin indiqué et contient `label`, `fs`, `ecg` et
+`intervals`. Sans `--annotations`, les intervalles P, QRS et T sont vides ; le
+convertisseur ne détecte ni ne fabrique d'annotations. Pour conserver des
+annotations existantes, fournissez un fichier JSON contenant directement les
+intervalles (ou un objet avec une clé `intervals`) :
+
+```text
+python signal-processing/convert_ecg_csv.py recordings/patient-01.csv web/data/ludb/records/record-201.json --fs 500 --column 1 --skip-header --annotations recordings/patient-01-annotations.json
+```
+
+Exemple de contenu pour `patient-01-annotations.json` (les temps sont en
+secondes) :
+
+```json
+{
+  "P": [[0.10, 0.18]],
+  "QRS": [[0.20, 0.28]],
+  "T": [[0.35, 0.50]]
+}
+```
+
+Les intervalles doivent être des paires de temps en secondes comprises dans la
+durée du signal. Le script ne remplace pas un fichier de sortie existant sans
+l'option `--overwrite`. Pour que le site statique affiche l'enregistrement,
+conservez le nom `record-ID.json`, choisissez un identifiant unique, puis
+inscrivez cet identifiant et son libellé dans `web/data/ludb/index.json`. Le
+script ne modifie pas l'index. N'utilisez pas ces exemples avec des données
+identifiantes sans vérifier les règles de confidentialité applicables.
+
 Le site peut être hébergé sur un service statique comme GitHub Pages. Le
 chargement de Three.js depuis un CDN nécessite une connexion internet pour la
 visualisation 3D ; les enregistrements et le modèle du cœur sont dans le dépôt.
