@@ -6,7 +6,7 @@ ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web
 - Traitement et export des signaux ECG : Python et JSON
 - Source des données : Lobachevsky University Electrocardiography Database (LUDB), via PhysioNet
 - Ressources 3D : modèles sélectionnables chargés avec Three.js.
-
+ 
 ## Structure du projet
 - `web/index.html` : interface principale de l'application web.
 - `web/css/` : feuilles de style de l'interface.
