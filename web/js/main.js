@@ -22,6 +22,7 @@ const closeGuideButton = document.getElementById("close-guide-button");
 const guidePageButtons = document.querySelectorAll("[data-guide-page]");
 const guidePages = document.querySelectorAll(".guide-page");
 const timeDisplay = document.getElementById("time-display");
+const samplingFrequencyDisplay = document.getElementById("record-sampling-frequency");
 
 const phaseDisplay = document.getElementById("phase-display");
 
@@ -590,6 +591,9 @@ function updateInterface() {
 
     const phase = getPhase(currentTime);
 
+    samplingFrequencyDisplay.textContent = currentRecord
+        ? `${currentRecord.fs} Hz`
+        : "— Hz";
 
 
     timeDisplay.textContent = formatTime(currentTime);

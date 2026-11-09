@@ -317,6 +317,30 @@ a:focus-visible {
     margin-bottom: 12px;
 }
 
+.heart-model-scale {
+    margin-bottom: 12px;
+}
+
+.heart-model-scale__control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.heart-model-scale input {
+    width: 100%;
+    min-width: 0;
+    accent-color: var(--mint-dark);
+}
+
+.heart-model-scale output {
+    min-width: 42px;
+    color: var(--night);
+    font-size: 0.82rem;
+    font-weight: 750;
+    text-align: right;
+}
+
 .heart-model-picker select {
     border-color: #cfe1dc;
     background-color: #f7f9f8;
@@ -730,6 +754,16 @@ a:focus-visible {
     text-underline-offset: 3px;
 }
 
+.guide-development-notice {
+    margin-bottom: 18px;
+    border: 1px solid rgba(201, 140, 37, 0.35);
+    border-radius: 9px;
+    background: #fff7e8;
+    color: #79500c;
+    padding: 8px 11px;
+    font-size: 0.78rem;
+}
+
 .guide-credits-list a {
     color: var(--mint-dark);
     font-weight: 700;
@@ -757,6 +791,15 @@ a:focus-visible {
 .time-readout {
     display: grid;
     gap: 6px;
+}
+
+.sampling-frequency {
+    margin-left: 5px;
+    color: #8a9a97;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .field-group > span:first-child,

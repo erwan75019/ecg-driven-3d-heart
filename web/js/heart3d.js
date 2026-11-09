@@ -148,6 +148,8 @@ const viewer = {
 
     scene: null,
 
+    modelScaleFactor: 1,
+
     statusElement: null,
 
     syncState: null,
@@ -463,7 +465,8 @@ function centerAndScaleModel(model) {
 
     modelRoot.name = "HeartModelRoot";
 
-    modelRoot.scale.setScalar(TARGET_MODEL_SIZE / maximumDimension);
+    modelRoot.userData.baseScale = TARGET_MODEL_SIZE / maximumDimension;
+    modelRoot.scale.setScalar(modelRoot.userData.baseScale * viewer.modelScaleFactor);
 
     modelRoot.rotation.set(
 
@@ -483,6 +486,26 @@ function centerAndScaleModel(model) {
 
     return modelRoot;
 
+}
+
+function updateModelScale(factor) {
+    if (!Number.isFinite(factor) || factor < 0.5 || factor > 2) {
+        console.error("The 3D heart scale must be between 0.5× and 2.0×.");
+        return;
+    }
+
+    viewer.modelScaleFactor = factor;
+    const scaleOutput = document.getElementById("heart-model-scale-value");
+    if (scaleOutput) {
+        scaleOutput.value = `${factor.toFixed(1)}×`;
+    }
+
+    if (!viewer.modelRoot) {
+        return;
+    }
+
+    viewer.modelRoot.scale.setScalar(viewer.modelRoot.userData.baseScale * factor);
+    viewer.modelRoot.updateMatrixWorld(true);
 }
 
 function disposeModelResources(model) {
@@ -1053,8 +1076,8 @@ async function initializeHeartViewer() {
 
 
         viewer.renderer.setAnimationLoop(renderViewer);
-
         const modelSelect = document.getElementById("heart-model-select");
+        const modelScaleSlider = document.getElementById("heart-model-scale");
         const infoButton = document.getElementById("heart-model-info-button");
         const infoDialog = document.getElementById("heart-model-info-dialog");
         const closeInfoButton = document.getElementById("close-heart-model-info");
@@ -1067,6 +1090,12 @@ async function initializeHeartViewer() {
         if (modelSelect) {
             modelSelect.addEventListener("change", () => {
                 loadHeartModel(container, GLTFLoader, modelSelect.value);
+            });
+        }
+        if (modelScaleSlider instanceof HTMLInputElement) {
+            updateModelScale(Number(modelScaleSlider.value));
+            modelScaleSlider.addEventListener("input", () => {
+                updateModelScale(Number(modelScaleSlider.value));
             });
         }
         if (infoButton && infoDialog) {
