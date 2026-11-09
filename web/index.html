@@ -740,6 +740,20 @@
                     <li><strong>Register each record.</strong> Add the JSON file as <code>record-ID.json</code> and add its <code>id</code> and <code>label</code> to <code>web/data/ludb/index.json</code>. IDs must be unique and match the filenames.</li>
                     <li><strong>Check the result.</strong> Reload the site using a local web server, select the record, inspect its annotations and filtered signal, and open the report to verify the measurements.</li>
                 </ol>
+                <details class="guide-data-example">
+                    <summary>Click for more details — JSON example</summary>
+                    <pre><code>{
+  "label": "Example ECG",
+  "fs": 500,
+  "ecg": [0.02, 0.08, 0.16],
+  "intervals": {
+    "P": [[0.10, 0.18]],
+    "QRS": [[0.20, 0.28]],
+    "T": [[0.35, 0.50]]
+  }
+}</code></pre>
+                    <p>See the <a href="data/ludb/records/record-1.json" target="_blank" rel="noopener noreferrer">reference ECG record</a> for a complete example in the format used by the application.</p>
+                </details>
                 <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data; it is not a general importer for other dataset formats. Convert other datasets to the same JSON structure first, and check their usage terms and privacy requirements. The site currently reads local JSON files; it does not upload data.</p>
             </section>
             <section id="guide-page-credits" class="guide-page" aria-labelledby="guide-credits-title" hidden>
@@ -755,6 +769,13 @@
                     <li><strong>“Realistic Heart Animated” by Pixio x AI Tutor.</strong> <a href="https://sketchfab.com/tsiorg" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
                 </ul>
                 <p class="guide-note">The model files are provided in <code>web/assets/models/</code>. All selected models are downloadable under CC BY 4.0. Please retain these attributions and the license terms when redistributing them.</p>
+                <h4>Libraries, data and signal processing</h4>
+                <ul class="guide-steps guide-credits-list">
+                    <li><strong>Three.js 0.160</strong> is the browser's 3D rendering engine. <code>GLTFLoader</code> loads glTF/GLB models and <code>OrbitControls</code> provides interactive camera controls. Three.js is served from the <a href="https://unpkg.com/three@0.160.0/" target="_blank" rel="noopener noreferrer">unpkg CDN</a>. <a href="https://threejs.org/" target="_blank" rel="noopener noreferrer">Three.js official site</a>.</li>
+                    <li>The Python scripts use <a href="https://numpy.org/" target="_blank" rel="noopener noreferrer">NumPy</a>, <a href="https://scipy.org/" target="_blank" rel="noopener noreferrer">SciPy</a> and <a href="https://matplotlib.org/" target="_blank" rel="noopener noreferrer">Matplotlib</a> for numerical processing and signal visualization.</li>
+                    <li>ECG recordings and annotations come from the <strong>Lobachevsky University Electrocardiography Database (LUDB)</strong>, distributed by <a href="https://physionet.org/content/ludb/" target="_blank" rel="noopener noreferrer">PhysioNet</a>. Any reuse or publication must follow the dataset's terms of use and include the bibliographic citation provided on its PhysioNet page.</li>
+                    <li>The project uses a <strong>0.5–40 Hz, order-4 Butterworth band-pass filter</strong>. The Python script uses <code>scipy.signal.butter</code> and <code>scipy.signal.sosfiltfilt</code>; the website uses a JavaScript implementation of the same filter type. Filtering is not ECG wave detection.</li>
+                </ul>
             </section>
         </div>
     </dialog>

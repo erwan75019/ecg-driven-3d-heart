@@ -66,6 +66,27 @@ licence CC BY 4.0. Pour les redistribuer, conserver l'attribution au créateur,
 le lien vers la source et les conditions de cette licence. Les crédits et les
 liens sont également accessibles dans l'onglet « Credits » du guide du site.
 
+### Bibliothèques, données et traitement du signal
+
+- **Three.js 0.160** est le moteur de rendu 3D du site. Les modules
+  `GLTFLoader` et `OrbitControls` servent respectivement à charger les modèles
+  glTF/GLB et à manipuler la vue. Three.js est chargé depuis le CDN
+  [unpkg](https://unpkg.com/three@0.160.0/).
+  [Site officiel de Three.js](https://threejs.org/).
+- Les scripts Python utilisent [NumPy](https://numpy.org/),
+  [SciPy](https://scipy.org/) et [Matplotlib](https://matplotlib.org/) pour le
+  traitement numérique et la visualisation des signaux.
+- Les données ECG et les annotations proviennent de la
+  **Lobachevsky University Electrocardiography Database (LUDB)**, distribuée par
+  [PhysioNet](https://physionet.org/content/ludb/). Toute réutilisation ou
+  publication doit respecter les conditions d'utilisation du jeu de données et
+  inclure la référence bibliographique indiquée sur sa page PhysioNet.
+- Le traitement utilise un filtre passe-bande Butterworth de **0,5 à 40 Hz,
+  d'ordre 4**. Le script Python s'appuie sur `scipy.signal.butter` et
+  `scipy.signal.sosfiltfilt` ; le site applique le même type de filtre avec une
+  implémentation JavaScript. Le filtrage ne constitue pas un détecteur d'ondes
+  ECG.
+
 ## Filtrage ECG et rapport
 ### Installation rapide
 
