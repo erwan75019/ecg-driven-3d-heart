@@ -22,6 +22,7 @@ const closeGuideButton = document.getElementById("close-guide-button");
 const guidePageButtons = document.querySelectorAll("[data-guide-page]");
 const guidePages = document.querySelectorAll(".guide-page");
 const timeDisplay = document.getElementById("time-display");
+const samplingFrequencyDisplay = document.getElementById("record-sampling-frequency");
 
 const phaseDisplay = document.getElementById("phase-display");
 
@@ -46,6 +47,8 @@ const QRS_AMPLITUDE_EPSILON = 1e-12;
 const QRS_ACTIVITY_NOISE_MULTIPLIER = 3;
 const QRS_ACTIVITY_NUMERICAL_EPSILON_MULTIPLIER = 32;
 const QRS_DEGENERATE_BASELINE_QUANTILE = 0.95;
+const ECG_Y_MINIMUM = -1.2;
+const ECG_Y_MAXIMUM = 1.2;
 
 let currentRecord = null;
 let filteredSignal = null;
@@ -53,9 +56,9 @@ let qrsAmplitudeProfile = [];
 let showingFilteredSignal = false;
 let playbackDuration = 0;
 
-let signalMinimum = 0;
+const signalMinimum = ECG_Y_MINIMUM;
 
-let signalMaximum = 1;
+const signalMaximum = ECG_Y_MAXIMUM;
 
 let currentTime = 0;
 
@@ -605,6 +608,9 @@ function updateInterface() {
 
     const phase = getPhase(currentTime);
 
+    samplingFrequencyDisplay.textContent = currentRecord
+        ? `${currentRecord.fs} Hz`
+        : "— Hz";
 
 
     timeDisplay.textContent = formatTime(currentTime);
@@ -1716,13 +1722,6 @@ async function loadRecord(recordId) {
         qrsAmplitudeProfile = recordQrsAmplitudeProfile;
         playbackDuration = record.ecg.length / record.fs;
 
-        const range = calculateSignalRange(getDisplayedSignal());
-        signalMinimum = range.minimum;
-
-        signalMaximum = range.maximum;
-
-
-
         ecgCanvas.setAttribute(
 
             "aria-label",
@@ -1822,9 +1821,6 @@ switchSignalButton.addEventListener("click", () => {
     }
 
     showingFilteredSignal = !showingFilteredSignal;
-    const range = calculateSignalRange(getDisplayedSignal());
-    signalMinimum = range.minimum;
-    signalMaximum = range.maximum;
     updateInterface();
 });
 viewReportButton.addEventListener("click", openReportPreview);
