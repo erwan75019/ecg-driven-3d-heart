@@ -43,6 +43,9 @@ const QRS_AMPLITUDE_MAD_SCALE = 1.4826;
 const QRS_AMPLITUDE_RELATIVE_SCALE_FLOOR = 0.05;
 const QRS_AMPLITUDE_Z_LIMIT = 2;
 const QRS_AMPLITUDE_EPSILON = 1e-12;
+const QRS_ACTIVITY_NOISE_MULTIPLIER = 3;
+const QRS_ACTIVITY_NUMERICAL_EPSILON_MULTIPLIER = 32;
+const QRS_DEGENERATE_BASELINE_QUANTILE = 0.95;
 
 let currentRecord = null;
 let filteredSignal = null;
@@ -1110,13 +1113,76 @@ function measureQrsAmplitude(signal, samplingRate, interval, pIntervals) {
         return null;
     }
 
-    const absoluteExcursions = signal
+    const qrsSamples = signal
         .slice(firstQrsSample, afterLastQrsSample)
-        .map((sample) => Math.abs(Number(sample) - localBaseline))
+        .map(Number)
         .filter(Number.isFinite);
+    const absoluteExcursions = qrsSamples.map(
+        (sample) => Math.abs(sample - localBaseline)
+    );
     const amplitude = quantile(absoluteExcursions, QRS_AMPLITUDE_QUANTILE);
 
-    return Number.isFinite(amplitude) ? amplitude : null;
+    if (!Number.isFinite(amplitude) || amplitude < 0) {
+        return null;
+    }
+
+    const baselineAbsoluteDeviations = selectedBaselineSamples.map(
+        (sample) => Math.abs(sample - localBaseline)
+    );
+    const baselineMad = median(baselineAbsoluteDeviations);
+
+    if (!Number.isFinite(baselineMad) || baselineMad < 0) {
+        return null;
+    }
+
+    const madNoiseScale = QRS_AMPLITUDE_MAD_SCALE * baselineMad;
+
+    if (!Number.isFinite(madNoiseScale) || madNoiseScale < 0) {
+        return null;
+    }
+
+    let referenceMagnitude = Math.max(Math.abs(localBaseline), Number.MIN_VALUE);
+    for (const sample of selectedBaselineSamples) {
+        referenceMagnitude = Math.max(referenceMagnitude, Math.abs(sample));
+    }
+    for (const sample of qrsSamples) {
+        referenceMagnitude = Math.max(referenceMagnitude, Math.abs(sample));
+    }
+    const numericalNoiseFloor = Math.max(
+        QRS_ACTIVITY_NUMERICAL_EPSILON_MULTIPLIER
+            * Number.EPSILON
+            * referenceMagnitude,
+        Number.MIN_VALUE
+    );
+    // MAD can collapse to zero for a quantized baseline even when two or
+    // more repeated levels contain noise. In that degenerate case only, use
+    // a robust high baseline excursion as the noise estimate. A genuinely
+    // constant baseline keeps a zero noiseScale and relies on the numerical
+    // floor solely to make the comparison and SNR division safe.
+    const fallbackNoiseScale = quantile(
+        baselineAbsoluteDeviations,
+        QRS_DEGENERATE_BASELINE_QUANTILE
+    );
+    const noiseScale = madNoiseScale <= numericalNoiseFloor
+        && Number.isFinite(fallbackNoiseScale)
+        ? fallbackNoiseScale
+        : madNoiseScale;
+    const effectiveNoiseScale = Math.max(noiseScale, numericalNoiseFloor);
+    const rawSignalToNoiseRatio = amplitude / effectiveNoiseScale;
+    const signalToNoiseRatio = Number.isFinite(rawSignalToNoiseRatio)
+        ? rawSignalToNoiseRatio
+        : amplitude > 0
+            ? Number.MAX_VALUE
+            : 0;
+    const active = amplitude
+        > QRS_ACTIVITY_NOISE_MULTIPLIER * effectiveNoiseScale;
+
+    return {
+        amplitude,
+        noiseScale,
+        signalToNoiseRatio,
+        active
+    };
 }
 
 function normalizeQrsAmplitudes(profile) {
@@ -1125,7 +1191,9 @@ function normalizeQrsAmplitudes(profile) {
     }
 
     const validAmplitudes = profile
-        .map((entry) => entry ? entry.amplitude : null)
+        .map((entry) => entry && entry.active === true
+            ? entry.amplitude
+            : null)
         .filter((amplitude) => Number.isFinite(amplitude) && amplitude >= 0);
 
     if (validAmplitudes.length === 0) {
@@ -1148,7 +1216,12 @@ function normalizeQrsAmplitudes(profile) {
 
     return profile.map((entry) => {
         const amplitude = entry ? entry.amplitude : null;
-        if (!Number.isFinite(amplitude) || amplitude < 0) {
+        if (
+            !entry
+            || entry.active !== true
+            || !Number.isFinite(amplitude)
+            || amplitude < 0
+        ) {
             return {...entry, normalizedAmplitude: null};
         }
 
@@ -1178,7 +1251,7 @@ function buildQrsAmplitudeProfile(record, signal) {
     const profile = qrsIntervals.map((interval) => {
         const start = Array.isArray(interval) ? interval[0] : NaN;
         const end = Array.isArray(interval) ? interval[1] : NaN;
-        const amplitude = measureQrsAmplitude(
+        const measurement = measureQrsAmplitude(
             signal,
             record.fs,
             interval,
@@ -1188,8 +1261,13 @@ function buildQrsAmplitudeProfile(record, signal) {
         return {
             start: Number.isFinite(start) ? start : null,
             end: Number.isFinite(end) ? end : null,
-            amplitude,
-            normalizedAmplitude: null
+            amplitude: measurement ? measurement.amplitude : null,
+            noiseScale: measurement ? measurement.noiseScale : null,
+            signalToNoiseRatio: measurement
+                ? measurement.signalToNoiseRatio
+                : null,
+            normalizedAmplitude: null,
+            active: measurement ? measurement.active : false
         };
     });
 

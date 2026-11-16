@@ -728,7 +728,7 @@
                     <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
                     <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
                 </ol>
-                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline, while filtered QRS amplitude modulates the visual strength of each beat. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
+                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline, while filtered QRS amplitude above the local baseline noise modulates the visual strength of each beat. Without valid QRS activity the model remains in its reference pose. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
             </section>
             <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
                 <p class="eyebrow">Data workflow</p>
@@ -777,9 +777,9 @@
 
     </script>
 
-    <script src="js/main.js?v=20261116-qrs-amplitude"></script>
+    <script src="js/main.js?v=20261116-qrs-activity"></script>
 
-    <script type="module" src="js/heart3d.js?v=20261116-qrs-amplitude"></script>
+    <script type="module" src="js/heart3d.js?v=20261116-qrs-activity"></script>
 
 </body>
 

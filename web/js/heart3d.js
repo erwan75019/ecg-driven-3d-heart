@@ -1,7 +1,8 @@
 const DEFAULT_HEART_MODEL_ID = "beating-heart";
 
 const DEFAULT_HEART_AMPLITUDE_PROFILE = Object.freeze({
-    minWeight: 0.65,
+    inactiveWeight: 0,
+    minActiveWeight: 0.35,
     maxWeight: 1,
     gamma: 1
 });
@@ -140,7 +141,13 @@ const viewer = {
 
     animationClips: [],
 
-    currentAnimationWeight: 1,
+    currentAnimationWeight: 0,
+
+    currentQrsActive: false,
+
+    currentQrsNoiseScale: null,
+
+    currentQrsSignalToNoiseRatio: null,
 
     currentNormalizedQrsAmplitude: null,
 
@@ -551,7 +558,10 @@ function removeCurrentModel() {
     viewer.animationAction = null;
     viewer.animationClip = null;
     viewer.animationClips = [];
-    viewer.currentAnimationWeight = 1;
+    viewer.currentAnimationWeight = 0;
+    viewer.currentQrsActive = false;
+    viewer.currentQrsNoiseScale = null;
+    viewer.currentQrsSignalToNoiseRatio = null;
     viewer.currentNormalizedQrsAmplitude = null;
     viewer.currentRawQrsAmplitude = null;
     viewer.meshNames = [];
@@ -785,59 +795,104 @@ function getQrsAmplitudeForCycle(state, cycle) {
         && Math.abs(candidate.start - cycle.start) < 1e-6
     ));
 
-    if (!entry || !Number.isFinite(entry.normalizedAmplitude)) {
+    if (!entry) {
         return null;
     }
 
+    const amplitude = Number.isFinite(entry.amplitude) && entry.amplitude >= 0
+        ? entry.amplitude
+        : null;
+    const noiseScale = Number.isFinite(entry.noiseScale) && entry.noiseScale >= 0
+        ? entry.noiseScale
+        : null;
+    const signalToNoiseRatio = (
+        Number.isFinite(entry.signalToNoiseRatio)
+        && entry.signalToNoiseRatio >= 0
+    )
+        ? entry.signalToNoiseRatio
+        : null;
+    const normalizedAmplitude = (
+        Number.isFinite(entry.normalizedAmplitude)
+        && entry.normalizedAmplitude >= 0
+        && entry.normalizedAmplitude <= 1
+    )
+        ? entry.normalizedAmplitude
+        : null;
+
     return {
-        amplitude: Number.isFinite(entry.amplitude) ? entry.amplitude : null,
-        normalizedAmplitude: entry.normalizedAmplitude
+        amplitude,
+        noiseScale,
+        signalToNoiseRatio,
+        normalizedAmplitude,
+        active: entry.active === true
+            && amplitude !== null
+            && noiseScale !== null
+            && signalToNoiseRatio !== null
+            && normalizedAmplitude !== null
     };
 }
 
 
 function getModelAmplitudeProfile(model) {
     const profile = model ? model.amplitudeProfile : null;
-    const minWeight = profile ? profile.minWeight : NaN;
+    const inactiveWeight = profile ? profile.inactiveWeight : NaN;
+    const minActiveWeight = profile ? profile.minActiveWeight : NaN;
     const maxWeight = profile ? profile.maxWeight : NaN;
     const gamma = profile ? profile.gamma : NaN;
     const isValid = (
-        Number.isFinite(minWeight)
+        Number.isFinite(inactiveWeight)
+        && Number.isFinite(minActiveWeight)
         && Number.isFinite(maxWeight)
         && Number.isFinite(gamma)
-        && minWeight >= 0
-        && minWeight <= maxWeight
+        && inactiveWeight >= 0
+        && inactiveWeight <= minActiveWeight
+        && minActiveWeight <= maxWeight
         && maxWeight <= 1
         && gamma > 0
     );
     const resolved = isValid ? profile : DEFAULT_HEART_AMPLITUDE_PROFILE;
 
     return {
-        minWeight: resolved.minWeight,
+        inactiveWeight: resolved.inactiveWeight,
+        minActiveWeight: resolved.minActiveWeight,
         maxWeight: resolved.maxWeight,
         gamma: resolved.gamma
     };
 }
 
 
-function getModelAnimationWeight(normalizedAmplitude, model) {
-    if (!Number.isFinite(normalizedAmplitude)) {
-        return 1;
+function getModelAnimationWeight(qrsAmplitude, model) {
+    const profile = getModelAmplitudeProfile(model);
+
+    if (
+        !qrsAmplitude
+        || qrsAmplitude.active !== true
+        || !Number.isFinite(qrsAmplitude.normalizedAmplitude)
+    ) {
+        return profile.inactiveWeight;
     }
 
-    const profile = getModelAmplitudeProfile(model);
-    const clampedAmplitude = Math.min(Math.max(normalizedAmplitude, 0), 1);
+    const clampedAmplitude = Math.min(
+        Math.max(qrsAmplitude.normalizedAmplitude, 0),
+        1
+    );
     const calibratedAmplitude = clampedAmplitude ** profile.gamma;
-    const weight = profile.minWeight
-        + (profile.maxWeight - profile.minWeight) * calibratedAmplitude;
+    const weight = profile.minActiveWeight
+        + (profile.maxWeight - profile.minActiveWeight) * calibratedAmplitude;
 
     return Number.isFinite(weight)
         ? Math.min(Math.max(weight, 0), 1)
-        : 1;
+        : profile.inactiveWeight;
 }
 
 
-function getSynchronizedQrsAmplitude(state) {
+function hasQrsAmplitudeMetadata(state) {
+    return Boolean(state)
+        && Object.prototype.hasOwnProperty.call(state, "qrsAmplitudeProfile");
+}
+
+
+function getCurrentAnnotatedCycle(state) {
     if (!state) {
         return null;
     }
@@ -855,25 +910,52 @@ function getSynchronizedQrsAmplitude(state) {
     }
 
     const cycle = getCurrentCycleWindow(time, state.qrsIntervals, recordDuration);
+    if (!cycle) {
+        return null;
+    }
+
+    const hasMatchingQrs = Array.isArray(state.qrsIntervals)
+        && state.qrsIntervals.some((interval) => (
+            Array.isArray(interval)
+            && interval.length === 2
+            && interval.every(Number.isFinite)
+            && interval[1] > interval[0]
+            && Math.abs(interval[0] - cycle.start) < 1e-6
+        ));
+
+    return hasMatchingQrs ? cycle : null;
+}
+
+
+function getSynchronizedQrsAmplitude(state) {
+    const cycle = getCurrentAnnotatedCycle(state);
     return cycle ? getQrsAmplitudeForCycle(state, cycle) : null;
 }
 
 
 function getSynchronizedAnimationWeight(state, qrsAmplitude = undefined) {
-    const selectedQrsAmplitude = qrsAmplitude === undefined
-        ? getSynchronizedQrsAmplitude(state)
-        : qrsAmplitude;
-    if (!selectedQrsAmplitude) {
-        return 1;
-    }
-
     const model = viewer.selectedModelId
         ? HEART_MODELS[viewer.selectedModelId]
         : null;
-    return getModelAnimationWeight(
-        selectedQrsAmplitude.normalizedAmplitude,
-        model
-    );
+    const profile = getModelAmplitudeProfile(model);
+    const cycle = getCurrentAnnotatedCycle(state);
+
+    if (!cycle) {
+        return profile.inactiveWeight;
+    }
+
+    // Backward compatibility is intentionally limited to genuine legacy
+    // events that omit amplitude metadata entirely. Modern missing, empty or
+    // invalid profiles fail closed to the inactive reference pose.
+    if (!hasQrsAmplitudeMetadata(state)) {
+        return 1;
+    }
+
+    const selectedQrsAmplitude = qrsAmplitude === undefined
+        ? getQrsAmplitudeForCycle(state, cycle)
+        : qrsAmplitude;
+
+    return getModelAnimationWeight(selectedQrsAmplitude, model);
 }
 
 
@@ -890,6 +972,17 @@ function applySynchronizedHeartPose() {
     );
 
     viewer.currentAnimationWeight = animationWeight;
+    viewer.currentQrsActive = qrsAmplitude
+        ? qrsAmplitude.active === true
+        : hasQrsAmplitudeMetadata(viewer.syncState)
+            ? false
+            : null;
+    viewer.currentQrsNoiseScale = qrsAmplitude
+        ? qrsAmplitude.noiseScale
+        : null;
+    viewer.currentQrsSignalToNoiseRatio = qrsAmplitude
+        ? qrsAmplitude.signalToNoiseRatio
+        : null;
     viewer.currentNormalizedQrsAmplitude = qrsAmplitude
         ? qrsAmplitude.normalizedAmplitude
         : null;
@@ -920,7 +1013,7 @@ function initializeHeartAnimation(gltf) {
     // There is deliberately no mixer.update(delta): ECG currentTime is the
     // only master clock for heart deformation.
     viewer.animationAction.enabled = true;
-    viewer.animationAction.setEffectiveWeight(1);
+    viewer.animationAction.setEffectiveWeight(0);
     viewer.animationAction.setLoop(THREE.LoopRepeat, Infinity);
     viewer.animationAction.play();
 
@@ -1287,6 +1380,12 @@ export function getHeartViewerState() {
         currentEffectiveAnimationWeight: viewer.animationAction
             ? viewer.animationAction.getEffectiveWeight()
             : viewer.currentAnimationWeight,
+
+        currentQrsActive: viewer.currentQrsActive,
+
+        currentQrsNoiseScale: viewer.currentQrsNoiseScale,
+
+        currentQrsSignalToNoiseRatio: viewer.currentQrsSignalToNoiseRatio,
 
         currentNormalizedQrsAmplitude: viewer.currentNormalizedQrsAmplitude,
 
