@@ -35,9 +35,18 @@ const HEART_SYNC_EVENT = "ecg-heart-sync";
 const FILTER_LOW_HZ = 0.5;
 const FILTER_HIGH_HZ = 40;
 const FILTER_ORDER = 4;
+const QRS_BASELINE_LOOKBACK_SECONDS = 0.2;
+const QRS_BASELINE_GAP_SECONDS = 0.02;
+const QRS_MIN_BASELINE_SAMPLE_COUNT = 10;
+const QRS_AMPLITUDE_QUANTILE = 0.95;
+const QRS_AMPLITUDE_MAD_SCALE = 1.4826;
+const QRS_AMPLITUDE_RELATIVE_SCALE_FLOOR = 0.05;
+const QRS_AMPLITUDE_Z_LIMIT = 2;
+const QRS_AMPLITUDE_EPSILON = 1e-12;
 
 let currentRecord = null;
 let filteredSignal = null;
+let qrsAmplitudeProfile = [];
 let showingFilteredSignal = false;
 let playbackDuration = 0;
 
@@ -576,6 +585,9 @@ function publishHeartSyncState(phase) {
         recordLabel: currentRecord ? currentRecord.label : null,
         pIntervals: Array.isArray(intervals.P) ? intervals.P : [],
         qrsIntervals: Array.isArray(intervals.QRS) ? intervals.QRS : [],
+        qrsAmplitudeProfile: Array.isArray(qrsAmplitudeProfile)
+            ? qrsAmplitudeProfile
+            : [],
         tIntervals: Array.isArray(intervals.T) ? intervals.T : []
     };
 
@@ -978,6 +990,210 @@ function filterEcg(signal, samplingRate) {
     }
 
     return filtered;
+}
+
+function quantile(values, probability) {
+    if (!Array.isArray(values) || values.length === 0) {
+        return null;
+    }
+
+    const finiteValues = values
+        .filter(Number.isFinite)
+        .sort((left, right) => left - right);
+
+    if (finiteValues.length === 0 || !Number.isFinite(probability)) {
+        return null;
+    }
+
+    const clampedProbability = Math.min(Math.max(probability, 0), 1);
+    const position = (finiteValues.length - 1) * clampedProbability;
+    const lowerIndex = Math.floor(position);
+    const upperIndex = Math.ceil(position);
+
+    if (lowerIndex === upperIndex) {
+        return finiteValues[lowerIndex];
+    }
+
+    const fraction = position - lowerIndex;
+    return finiteValues[lowerIndex]
+        + (finiteValues[upperIndex] - finiteValues[lowerIndex]) * fraction;
+}
+
+function median(values) {
+    return quantile(values, 0.5);
+}
+
+function measureQrsAmplitude(signal, samplingRate, interval, pIntervals) {
+    if (
+        !Array.isArray(signal)
+        || !Number.isFinite(samplingRate)
+        || samplingRate <= 0
+        || !Array.isArray(interval)
+        || interval.length !== 2
+    ) {
+        return null;
+    }
+
+    const qrsStart = interval[0];
+    const qrsEnd = interval[1];
+
+    if (
+        !Number.isFinite(qrsStart)
+        || !Number.isFinite(qrsEnd)
+        || qrsStart < 0
+        || qrsEnd <= qrsStart
+    ) {
+        return null;
+    }
+
+    const signalDuration = signal.length / samplingRate;
+    const clampedQrsEnd = Math.min(qrsEnd, signalDuration);
+    const firstQrsSample = Math.max(0, Math.ceil(qrsStart * samplingRate));
+    const afterLastQrsSample = Math.min(
+        signal.length,
+        Math.floor(clampedQrsEnd * samplingRate) + 1
+    );
+
+    if (afterLastQrsSample - firstQrsSample < 3) {
+        return null;
+    }
+
+    const baselineEndTime = Math.max(0, qrsStart - QRS_BASELINE_GAP_SECONDS);
+    const fallbackBaselineStartTime = Math.max(
+        0,
+        qrsStart - QRS_BASELINE_LOOKBACK_SECONDS
+    );
+    const firstBaselineSample = Math.max(
+        0,
+        Math.ceil(fallbackBaselineStartTime * samplingRate)
+    );
+    const afterLastBaselineSample = Math.min(
+        signal.length,
+        Math.floor(baselineEndTime * samplingRate) + 1
+    );
+    const baselineSamples = [];
+    const pFreeBaselineSamples = [];
+
+    for (
+        let sampleIndex = firstBaselineSample;
+        sampleIndex < afterLastBaselineSample;
+        sampleIndex += 1
+    ) {
+        const sample = Number(signal[sampleIndex]);
+        if (!Number.isFinite(sample)) {
+            continue;
+        }
+
+        baselineSamples.push(sample);
+        const sampleTime = sampleIndex / samplingRate;
+        const overlapsPWave = Array.isArray(pIntervals)
+            && pIntervals.some((pInterval) => (
+                Array.isArray(pInterval)
+                && pInterval.length === 2
+                && Number.isFinite(pInterval[0])
+                && Number.isFinite(pInterval[1])
+                && sampleTime >= pInterval[0]
+                && sampleTime <= pInterval[1]
+            ));
+
+        if (!overlapsPWave) {
+            pFreeBaselineSamples.push(sample);
+        }
+    }
+
+    const selectedBaselineSamples = pFreeBaselineSamples.length
+        >= QRS_MIN_BASELINE_SAMPLE_COUNT
+        ? pFreeBaselineSamples
+        : baselineSamples;
+    const localBaseline = median(selectedBaselineSamples);
+    if (!Number.isFinite(localBaseline)) {
+        return null;
+    }
+
+    const absoluteExcursions = signal
+        .slice(firstQrsSample, afterLastQrsSample)
+        .map((sample) => Math.abs(Number(sample) - localBaseline))
+        .filter(Number.isFinite);
+    const amplitude = quantile(absoluteExcursions, QRS_AMPLITUDE_QUANTILE);
+
+    return Number.isFinite(amplitude) ? amplitude : null;
+}
+
+function normalizeQrsAmplitudes(profile) {
+    if (!Array.isArray(profile)) {
+        return [];
+    }
+
+    const validAmplitudes = profile
+        .map((entry) => entry ? entry.amplitude : null)
+        .filter((amplitude) => Number.isFinite(amplitude) && amplitude >= 0);
+
+    if (validAmplitudes.length === 0) {
+        return profile.map((entry) => ({
+            ...entry,
+            normalizedAmplitude: null
+        }));
+    }
+
+    const center = median(validAmplitudes);
+    const absoluteDeviations = validAmplitudes.map(
+        (amplitude) => Math.abs(amplitude - center)
+    );
+    const medianAbsoluteDeviation = median(absoluteDeviations);
+    const scale = Math.max(
+        QRS_AMPLITUDE_MAD_SCALE * medianAbsoluteDeviation,
+        QRS_AMPLITUDE_RELATIVE_SCALE_FLOOR * Math.abs(center),
+        QRS_AMPLITUDE_EPSILON
+    );
+
+    return profile.map((entry) => {
+        const amplitude = entry ? entry.amplitude : null;
+        if (!Number.isFinite(amplitude) || amplitude < 0) {
+            return {...entry, normalizedAmplitude: null};
+        }
+
+        const zScore = Math.min(
+            Math.max((amplitude - center) / scale, -QRS_AMPLITUDE_Z_LIMIT),
+            QRS_AMPLITUDE_Z_LIMIT
+        );
+        const normalizedAmplitude = Math.min(
+            Math.max(0.5 + zScore / (2 * QRS_AMPLITUDE_Z_LIMIT), 0),
+            1
+        );
+
+        return {...entry, normalizedAmplitude};
+    });
+}
+
+function buildQrsAmplitudeProfile(record, signal) {
+    const qrsIntervals = record && record.intervals
+        && Array.isArray(record.intervals.QRS)
+        ? record.intervals.QRS
+        : [];
+    const pIntervals = record && record.intervals
+        && Array.isArray(record.intervals.P)
+        ? record.intervals.P
+        : [];
+
+    const profile = qrsIntervals.map((interval) => {
+        const start = Array.isArray(interval) ? interval[0] : NaN;
+        const end = Array.isArray(interval) ? interval[1] : NaN;
+        const amplitude = measureQrsAmplitude(
+            signal,
+            record.fs,
+            interval,
+            pIntervals
+        );
+
+        return {
+            start: Number.isFinite(start) ? start : null,
+            end: Number.isFinite(end) ? end : null,
+            amplitude,
+            normalizedAmplitude: null
+        };
+    });
+
+    return normalizeQrsAmplitudes(profile);
 }
 
 function escapeHtml(value) {
@@ -1388,6 +1604,7 @@ async function loadRecord(recordId) {
 
     currentRecord = null;
     filteredSignal = null;
+    qrsAmplitudeProfile = [];
     showingFilteredSignal = false;
     playbackDuration = 0;
 
@@ -1412,8 +1629,13 @@ async function loadRecord(recordId) {
         }
 
         const recordFilteredSignal = filterEcg(record.ecg, record.fs);
+        const recordQrsAmplitudeProfile = buildQrsAmplitudeProfile(
+            record,
+            recordFilteredSignal
+        );
         currentRecord = record;
         filteredSignal = recordFilteredSignal;
+        qrsAmplitudeProfile = recordQrsAmplitudeProfile;
         playbackDuration = record.ecg.length / record.fs;
 
         const range = calculateSignalRange(getDisplayedSignal());

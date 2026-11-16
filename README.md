@@ -130,6 +130,10 @@ le nombre de battements présents dans son clip ; le repère de contraction a
 été estimé en échantillonnant le mouvement de chaque modèle. Ce calage reste
 illustratif : les correspondances de poses n'ont pas fait l'objet d'une
 validation physiologique.
+L'amplitude de chaque complexe QRS, mesurée sur le signal ECG filtré, module
+également la force visuelle de l'animation. Cette modulation est uniquement
+éducative : l'amplitude ECG ne mesure pas directement la contractilité
+mécanique cardiaque.
 Le bouton « User guide » présente les commandes du site et le format attendu
 pour ajouter des enregistrements.
 

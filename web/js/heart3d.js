@@ -1,5 +1,11 @@
 const DEFAULT_HEART_MODEL_ID = "beating-heart";
 
+const DEFAULT_HEART_AMPLITUDE_PROFILE = Object.freeze({
+    minWeight: 0.65,
+    maxWeight: 1,
+    gamma: 1
+});
+
 const HEART_PHASE_ANCHORS = {
     qrsEnd: 0.24,
     tStart: 0.42,
@@ -19,6 +25,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db",
         file: "web/assets/models/beating-heart-3d.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "alternate-beating-heart": {
@@ -30,6 +37,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55",
         file: "web/assets/models/animated-beating-heart.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 0.3625, contractionTime: 0.3125}
     },
     "anatomical-heart": {
@@ -41,6 +49,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/heart-0bf594670b6a45db802b57d531e490a6",
         file: "web/assets/models/anatomical-heart.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 1, contractionTime: 0.725}
     },
     "mitral-stenosis": {
@@ -52,6 +61,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/heart-mitral-stenosis-76b535535e054dc4a1b9ef64794428f2",
         file: "web/assets/models/mitral-stenosis-heart.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 1, contractionTime: 0.275}
     },
     "closed-heart": {
@@ -63,6 +73,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/closed-heart-b995082afacf4498bc22048061b04390",
         file: "web/assets/models/closed-heart.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "open-heart": {
@@ -74,6 +85,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/open-heart-2819aadc83c54011bfb9cfd972fe1c87",
         file: "web/assets/models/open-heart.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 1, contractionTime: 0.5}
     },
     "human-heart": {
@@ -85,6 +97,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/human-heart-d0c176d08c884d5d8a4657c200a0c9bf",
         file: "web/assets/models/human-heart-animated.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 0.5, contractionTime: 0.2}
     },
     "realistic-heart": {
@@ -96,6 +109,7 @@ const HEART_MODELS = {
         licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
         source: "https://sketchfab.com/3d-models/realistic-heart-animated-913988af9ae74d40aacd95927dc0936f",
         file: "web/assets/models/realistic-heart-animated.glb",
+        amplitudeProfile: DEFAULT_HEART_AMPLITUDE_PROFILE,
         syncProfile: {cycleLength: 0.5, contractionTime: 0.5}
     }
 };
@@ -125,6 +139,12 @@ const viewer = {
     animationClip: null,
 
     animationClips: [],
+
+    currentAnimationWeight: 1,
+
+    currentNormalizedQrsAmplitude: null,
+
+    currentRawQrsAmplitude: null,
 
     modelLoadRequestId: 0,
 
@@ -531,6 +551,9 @@ function removeCurrentModel() {
     viewer.animationAction = null;
     viewer.animationClip = null;
     viewer.animationClips = [];
+    viewer.currentAnimationWeight = 1;
+    viewer.currentNormalizedQrsAmplitude = null;
+    viewer.currentRawQrsAmplitude = null;
     viewer.meshNames = [];
     viewer.mixer = null;
     viewer.modelRoot = null;
@@ -751,12 +774,130 @@ function getSynchronizedClipTime(state) {
 }
 
 
+function getQrsAmplitudeForCycle(state, cycle) {
+    if (!state || !cycle || !Array.isArray(state.qrsAmplitudeProfile)) {
+        return null;
+    }
+
+    const entry = state.qrsAmplitudeProfile.find((candidate) => (
+        candidate
+        && Number.isFinite(candidate.start)
+        && Math.abs(candidate.start - cycle.start) < 1e-6
+    ));
+
+    if (!entry || !Number.isFinite(entry.normalizedAmplitude)) {
+        return null;
+    }
+
+    return {
+        amplitude: Number.isFinite(entry.amplitude) ? entry.amplitude : null,
+        normalizedAmplitude: entry.normalizedAmplitude
+    };
+}
+
+
+function getModelAmplitudeProfile(model) {
+    const profile = model ? model.amplitudeProfile : null;
+    const minWeight = profile ? profile.minWeight : NaN;
+    const maxWeight = profile ? profile.maxWeight : NaN;
+    const gamma = profile ? profile.gamma : NaN;
+    const isValid = (
+        Number.isFinite(minWeight)
+        && Number.isFinite(maxWeight)
+        && Number.isFinite(gamma)
+        && minWeight >= 0
+        && minWeight <= maxWeight
+        && maxWeight <= 1
+        && gamma > 0
+    );
+    const resolved = isValid ? profile : DEFAULT_HEART_AMPLITUDE_PROFILE;
+
+    return {
+        minWeight: resolved.minWeight,
+        maxWeight: resolved.maxWeight,
+        gamma: resolved.gamma
+    };
+}
+
+
+function getModelAnimationWeight(normalizedAmplitude, model) {
+    if (!Number.isFinite(normalizedAmplitude)) {
+        return 1;
+    }
+
+    const profile = getModelAmplitudeProfile(model);
+    const clampedAmplitude = Math.min(Math.max(normalizedAmplitude, 0), 1);
+    const calibratedAmplitude = clampedAmplitude ** profile.gamma;
+    const weight = profile.minWeight
+        + (profile.maxWeight - profile.minWeight) * calibratedAmplitude;
+
+    return Number.isFinite(weight)
+        ? Math.min(Math.max(weight, 0), 1)
+        : 1;
+}
+
+
+function getSynchronizedQrsAmplitude(state) {
+    if (!state) {
+        return null;
+    }
+
+    const time = Number(state.currentTime);
+    const recordDuration = Number(state.duration);
+
+    if (
+        !Number.isFinite(time)
+        || !Number.isFinite(recordDuration)
+        || recordDuration <= 0
+        || time >= recordDuration
+    ) {
+        return null;
+    }
+
+    const cycle = getCurrentCycleWindow(time, state.qrsIntervals, recordDuration);
+    return cycle ? getQrsAmplitudeForCycle(state, cycle) : null;
+}
+
+
+function getSynchronizedAnimationWeight(state, qrsAmplitude = undefined) {
+    const selectedQrsAmplitude = qrsAmplitude === undefined
+        ? getSynchronizedQrsAmplitude(state)
+        : qrsAmplitude;
+    if (!selectedQrsAmplitude) {
+        return 1;
+    }
+
+    const model = viewer.selectedModelId
+        ? HEART_MODELS[viewer.selectedModelId]
+        : null;
+    return getModelAnimationWeight(
+        selectedQrsAmplitude.normalizedAmplitude,
+        model
+    );
+}
+
+
 function applySynchronizedHeartPose() {
-    if (!viewer.mixer || !viewer.animationClip) {
+    if (!viewer.mixer || !viewer.animationClip || !viewer.animationAction) {
         return;
     }
 
-    viewer.mixer.setTime(getSynchronizedClipTime(viewer.syncState));
+    const synchronizedClipTime = getSynchronizedClipTime(viewer.syncState);
+    const qrsAmplitude = getSynchronizedQrsAmplitude(viewer.syncState);
+    const animationWeight = getSynchronizedAnimationWeight(
+        viewer.syncState,
+        qrsAmplitude
+    );
+
+    viewer.currentAnimationWeight = animationWeight;
+    viewer.currentNormalizedQrsAmplitude = qrsAmplitude
+        ? qrsAmplitude.normalizedAmplitude
+        : null;
+    viewer.currentRawQrsAmplitude = qrsAmplitude
+        ? qrsAmplitude.amplitude
+        : null;
+    viewer.animationAction.setEffectiveWeight(animationWeight);
+    viewer.mixer.setTime(synchronizedClipTime);
 }
 
 
@@ -779,6 +920,7 @@ function initializeHeartAnimation(gltf) {
     // There is deliberately no mixer.update(delta): ECG currentTime is the
     // only master clock for heart deformation.
     viewer.animationAction.enabled = true;
+    viewer.animationAction.setEffectiveWeight(1);
     viewer.animationAction.setLoop(THREE.LoopRepeat, Infinity);
     viewer.animationAction.play();
 
@@ -1126,6 +1268,10 @@ export function getHeartViewerState() {
 
 
 
+    const selectedModel = viewer.selectedModelId
+        ? HEART_MODELS[viewer.selectedModelId]
+        : null;
+
     return {
 
         animationClipCount: viewer.animationClips.length,
@@ -1137,6 +1283,14 @@ export function getHeartViewerState() {
         activeAnimationClip: viewer.animationClip ? viewer.animationClip.name : null,
 
         activeAnimationTime: viewer.mixer ? viewer.mixer.time : null,
+
+        currentEffectiveAnimationWeight: viewer.animationAction
+            ? viewer.animationAction.getEffectiveWeight()
+            : viewer.currentAnimationWeight,
+
+        currentNormalizedQrsAmplitude: viewer.currentNormalizedQrsAmplitude,
+
+        currentRawQrsAmplitude: viewer.currentRawQrsAmplitude,
 
 
         cameraPosition: viewer.camera
@@ -1165,6 +1319,10 @@ export function getHeartViewerState() {
             ? HEART_MODELS[viewer.selectedModelId].url
             : null,
         selectedModelId: viewer.selectedModelId,
+
+        selectedModelAmplitudeProfile: selectedModel
+            ? getModelAmplitudeProfile(selectedModel)
+            : null,
 
         morphTargetWeights,
 
