@@ -130,6 +130,19 @@ le nombre de battements présents dans son clip ; le repère de contraction a
 été estimé en échantillonnant le mouvement de chaque modèle. Ce calage reste
 illustratif : les correspondances de poses n'ont pas fait l'objet d'une
 validation physiologique.
+L'amplitude de chaque complexe QRS, mesurée sur le signal ECG filtré par
+rapport à une ligne de base locale, module également la force visuelle de
+l'animation. Un battement est considéré actif lorsque son excursion robuste
+(quantile 95 %) dépasse trois fois l'échelle de bruit robuste locale
+(`1,4826 × MAD` de la ligne de base). Si la MAD s'annule sur une ligne de base
+quantifiée mais non constante, le quantile 95 % des excursions de cette ligne
+de base sert de repli. Les battements actifs utilisent un poids compris entre
+0,35 et 1 ; en l'absence d'activité QRS valide, le modèle reste dans sa pose de
+référence avec un poids nul. Les anciens événements de synchronisation qui ne
+fournissent aucune métadonnée d'amplitude conservent un poids complet,
+uniquement pendant un cycle QRS réellement annoté. Cette modulation est
+uniquement éducative : l'amplitude ECG ne mesure pas directement la
+contractilité mécanique cardiaque.
 Le bouton « User guide » présente les commandes du site et le format attendu
 pour ajouter des enregistrements.
 
