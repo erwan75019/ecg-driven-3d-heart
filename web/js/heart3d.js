@@ -970,9 +970,9 @@ function getSynchronizedAnimationWeight(state, qrsAmplitude = undefined) {
     // Backward compatibility is intentionally limited to genuine legacy
     // events that omit amplitude metadata entirely. Modern missing, empty or
     // invalid profiles fail closed to the inactive reference pose.
-    if (!hasQrsAmplitudeMetadata(state)) {
+    /*if (!hasQrsAmplitudeMetadata(state)) {
         return 1;
-    }
+    }*/
 
     const selectedQrsAmplitude = qrsAmplitude === undefined
         ? getQrsAmplitudeForCycle(state, cycle)
