@@ -18,7 +18,7 @@ const HEART_PHASE_ANCHORS = {
 const HEART_MODELS = {
     // Clip fractions are profiled per asset to align QRS end with its contraction pose.
     "beating-heart": {
-        label: "Modèle 3D morphologique (Vue interne / Coupe)",
+        label: "Morphological heart (internal / cutaway view)",
         url: "assets/models/beating-heart-3d.glb",
         author: "soufiane oujihi",
         authorUrl: "https://sketchfab.com/soufianeoujihi",
@@ -30,7 +30,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "alternate-beating-heart": {
-        label: "Modèle 3D externe (Rendu surfacique épuré)",
+        label: "External heart (simplified surface)",
         url: "assets/models/animated-beating-heart.glb",
         author: "nitwit.friends",
         authorUrl: "https://sketchfab.com/nitwit.friends",
@@ -42,7 +42,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 0.3625, contractionTime: 0.3125}
     },
     "anatomical-heart": {
-        label: "Modèle 3D anatomique animé (vue générale)",
+        label: "Animated anatomical heart (overview)",
         url: "assets/models/anatomical-heart.glb",
         author: "shooogp",
         authorUrl: "https://sketchfab.com/shooogp",
@@ -54,7 +54,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 1, contractionTime: 0.725}
     },
     "mitral-stenosis": {
-        label: "Modèle 3D pathologique (sténose mitrale)",
+        label: "Pathological heart (mitral stenosis)",
         url: "assets/models/mitral-stenosis-heart.glb",
         author: "Edwin3dArtist",
         authorUrl: "https://sketchfab.com/edwinaldanadesign",
@@ -66,7 +66,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 1, contractionTime: 0.275}
     },
     "closed-heart": {
-        label: "Modèle 3D anatomique fermé (vue externe)",
+        label: "Closed anatomical heart (external view)",
         url: "assets/models/closed-heart.glb",
         author: "Ali.Zorays",
         authorUrl: "https://sketchfab.com/Ali.Zorays",
@@ -78,7 +78,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 1, contractionTime: 0}
     },
     "open-heart": {
-        label: "Modèle 3D anatomique ouvert (vue interne)",
+        label: "Open anatomical heart (internal view)",
         url: "assets/models/open-heart.glb",
         author: "Ali.Zorays",
         authorUrl: "https://sketchfab.com/Ali.Zorays",
@@ -90,7 +90,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 1, contractionTime: 0.5}
     },
     "human-heart": {
-        label: "Modèle 3D anatomique humain animé (texturé)",
+        label: "Animated human heart (textured)",
         url: "assets/models/human-heart-animated.glb",
         author: "Ricardo Joel Arana",
         authorUrl: "https://sketchfab.com/Ricardo47291",
@@ -102,7 +102,7 @@ const HEART_MODELS = {
         syncProfile: {cycleLength: 0.5, contractionTime: 0.2}
     },
     "realistic-heart": {
-        label: "Modèle 3D cardiaque réaliste animé",
+        label: "Realistic animated heart",
         url: "assets/models/realistic-heart-animated.glb",
         author: "Pixio x AI Tutor",
         authorUrl: "https://sketchfab.com/tsiorg",

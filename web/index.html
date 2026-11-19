@@ -386,7 +386,7 @@
                             aria-controls="heart-model-info-dialog"
                         >
                             <span class="heart-model-info-button__icon" aria-hidden="true">i</span>
-                            Infos
+                            Info
                         </button>
 
                     </div>
@@ -395,17 +395,17 @@
                         <span>Heart model</span>
                         <span class="select-wrapper">
                             <select id="heart-model-select" name="heart-model">
-                                <optgroup label="Anatomie générale et vue externe">
-                                    <option value="alternate-beating-heart">Modèle 3D externe (Rendu surfacique épuré)</option>
-                                    <option value="anatomical-heart">Modèle 3D anatomique animé (vue générale)</option>
-                                    <option value="closed-heart">Modèle 3D anatomique fermé (vue externe)</option>
-                                    <option value="human-heart">Modèle 3D anatomique humain animé (texturé)</option>
-                                    <option value="realistic-heart">Modèle 3D cardiaque réaliste animé</option>
+                                <optgroup label="General anatomy and external views">
+                                    <option value="alternate-beating-heart">External heart (simplified surface)</option>
+                                    <option value="anatomical-heart">Animated anatomical heart (overview)</option>
+                                    <option value="closed-heart">Closed anatomical heart (external view)</option>
+                                    <option value="human-heart">Animated human heart (textured)</option>
+                                    <option value="realistic-heart">Realistic animated heart</option>
                                 </optgroup>
-                                <optgroup label="Vues internes et pathologies">
-                                    <option value="beating-heart" selected>Modèle 3D morphologique (Vue interne / Coupe)</option>
-                                    <option value="open-heart">Modèle 3D anatomique ouvert (vue interne)</option>
-                                    <option value="mitral-stenosis">Modèle 3D pathologique (sténose mitrale)</option>
+                                <optgroup label="Internal views and pathology">
+                                    <option value="beating-heart" selected>Morphological heart (internal / cutaway view)</option>
+                                    <option value="open-heart">Open anatomical heart (internal view)</option>
+                                    <option value="mitral-stenosis">Pathological heart (mitral stenosis)</option>
                                 </optgroup>
                             </select>
                         </span>
@@ -692,25 +692,25 @@
 
     <dialog id="heart-model-info-dialog" class="heart-model-info-dialog" aria-labelledby="heart-model-info-title">
         <div class="report-dialog__header">
-            <h2 id="heart-model-info-title">À propos du modèle 3D</h2>
+            <h2 id="heart-model-info-title">About the 3D model</h2>
             <button id="close-heart-model-info" class="control-button control-button--secondary" type="button">
-                Fermer
+                Close
             </button>
         </div>
         <div class="heart-model-info-content">
-            <p class="eyebrow">Modèle affiché</p>
-            <h3 id="heart-model-info-name">Modèle 3D morphologique (Vue interne / Coupe)</h3>
+            <p class="eyebrow">Displayed model</p>
+            <h3 id="heart-model-info-name">Morphological heart (internal / cutaway view)</h3>
             <dl class="heart-model-info-facts">
                 <div>
-                    <dt>Auteur</dt>
+                    <dt>Author</dt>
                     <dd><a id="heart-model-info-author" href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">soufiane oujihi</a></dd>
                 </div>
                 <div>
-                    <dt>Licence</dt>
+                    <dt>License</dt>
                     <dd><a id="heart-model-info-license" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></dd>
                 </div>
                 <div>
-                    <dt>Fichier local</dt>
+                    <dt>Local file</dt>
                     <dd><code id="heart-model-info-file">web/assets/models/beating-heart-3d.glb</code></dd>
                 </div>
             </dl>
@@ -721,9 +721,9 @@
                 target="_blank"
                 rel="noopener noreferrer"
             >
-                Voir la source sur Sketchfab
+                View source on Sketchfab
             </a>
-            <p class="guide-note">Merci de créditer l’auteur et de respecter les conditions de la licence lors du partage du modèle.</p>
+            <p class="guide-note">Please credit the author and respect the license terms when sharing the model.</p>
         </div>
     </dialog>
 
@@ -761,7 +761,7 @@
             <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
                 <p class="eyebrow">Data workflow</p>
                 <h3 id="guide-data-title">Add a new ECG recording</h3>
-                <p class="guide-development-notice"><strong>Universal ECG import:</strong> Work in progress / En cours de développement.</p>
+                <p class="guide-development-notice"><strong>Universal ECG import:</strong> Work in progress.</p>
                 <ol class="guide-steps">
                     <li><strong>Prepare the signal.</strong> Use a single, evenly sampled ECG channel and keep its sampling rate in Hz. The current 0.5–40 Hz filter needs a sampling rate above 80 Hz and more than 27 samples.</li>
                     <li><strong>Annotate the waves.</strong> Provide P, QRS and T intervals as start/end times in seconds, measured from the beginning of the recording.</li>
@@ -787,7 +787,7 @@
             </section>
             <section id="guide-page-credits" class="guide-page" aria-labelledby="guide-credits-title" hidden>
                 <p class="eyebrow">Attribution</p>
-                <h3 id="guide-credits-title">Crédits et Remerciements</h3>
+                <h3 id="guide-credits-title">Credits and acknowledgements</h3>
                 <ul class="guide-steps guide-credits-list">
                     <li><strong>“Beating heart 3D” by soufiane oujihi.</strong> <a href="https://sketchfab.com/soufianeoujihi" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/beating-heart-3d-85d48e7526dd4e73aaf2f22f22f169db" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
                     <li><strong>“Animated Beating Heart” by nitwit.friends.</strong> <a href="https://sketchfab.com/nitwit.friends" target="_blank" rel="noopener noreferrer">Author profile</a> · <a href="https://sketchfab.com/3d-models/animated-beating-heart-335cd677c2014ca19e89efd65c7ddc55" target="_blank" rel="noopener noreferrer">Model on Sketchfab</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</li>
@@ -829,7 +829,7 @@
 
     <script src="js/main.js?v=20261116-qrs-activity"></script>
 
-    <script type="module" src="js/heart3d.js?v=20261116-qrs-activity"></script>
+    <script type="module" src="js/heart3d.js?v=20261119-dark-english"></script>
 
 </body>
 
