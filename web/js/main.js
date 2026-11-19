@@ -63,6 +63,15 @@ let isScrubbing = false;
 
 
 
+function getThemeColor(variableName, fallback) {
+    const value = getComputedStyle(document.documentElement)
+        .getPropertyValue(variableName)
+        .trim();
+
+    return value || fallback;
+}
+
+
 function drawGrid(context, width, height, plot, duration) {
 
     const horizontalLineCount = 8;
@@ -77,7 +86,9 @@ function drawGrid(context, width, height, plot, duration) {
 
 
 
-        context.strokeStyle = isLargeLine ? "#d7e6e2" : "#edf3f1";
+        context.strokeStyle = isLargeLine
+            ? getThemeColor("--ecg-grid-major", "#d7e6e2")
+            : getThemeColor("--ecg-grid-minor", "#edf3f1");
 
         context.lineWidth = 1;
 
@@ -109,7 +120,9 @@ function drawGrid(context, width, height, plot, duration) {
 
 
 
-        context.strokeStyle = isSecond ? "#d7e6e2" : "#edf3f1";
+        context.strokeStyle = isSecond
+            ? getThemeColor("--ecg-grid-major", "#d7e6e2")
+            : getThemeColor("--ecg-grid-minor", "#edf3f1");
 
         context.lineWidth = 1;
 
@@ -125,7 +138,7 @@ function drawGrid(context, width, height, plot, duration) {
 
         if (step % 10 === 0 && time <= duration) {
 
-            context.fillStyle = "#80918f";
+            context.fillStyle = getThemeColor("--ecg-axis", "#80918f");
 
             context.font = "10px Avenir, sans-serif";
 
@@ -279,7 +292,7 @@ function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
 
 function drawMessage(context, width, height, message) {
 
-    context.fillStyle = "#748683";
+    context.fillStyle = getThemeColor("--ecg-message", "#748683");
 
     context.font = "600 14px Avenir, sans-serif";
 
@@ -315,7 +328,7 @@ function drawEcg() {
 
     ecgContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-    ecgContext.fillStyle = "#f9fbfa";
+    ecgContext.fillStyle = getThemeColor("--ecg-canvas-bg", "#f9fbfa");
 
     ecgContext.fillRect(0, 0, bounds.width, bounds.height);
 
@@ -348,10 +361,13 @@ function drawEcg() {
     drawPhaseRegions(ecgContext, plot, playbackDuration);
 
     const signalName = showingFilteredSignal ? "Filtered ECG" : "Raw ECG";
-    const signalColor = showingFilteredSignal ? "#d97706" : "#087c64";
+    const signalColor = showingFilteredSignal
+        ? getThemeColor("--ecg-filtered", "#d97706")
+        : getThemeColor("--ecg-raw", "#087c64");
+
     const backgroundSignalColor = showingFilteredSignal
-        ? "rgba(217, 119, 6, 0.42)"
-        : "#b9c9c5";
+        ? getThemeColor("--ecg-filtered-muted", "rgba(217, 119, 6, 0.42)")
+        : getThemeColor("--ecg-raw-muted", "#b9c9c5");
     traceSignal(ecgContext, plot, backgroundSignalColor, 1.3);
 
 
@@ -375,8 +391,8 @@ function drawEcg() {
     );
 
     ecgContext.strokeStyle = showingFilteredSignal
-        ? "rgba(217, 119, 6, 0.42)"
-        : "rgba(8, 124, 100, 0.42)";
+        ? getThemeColor("--ecg-cursor-filtered", "rgba(217, 119, 6, 0.52)")
+        : getThemeColor("--ecg-cursor-raw", "rgba(8, 124, 100, 0.52)");
     ecgContext.lineWidth = 1;
     ecgContext.beginPath();
     ecgContext.moveTo(cursorX, plot.top);
@@ -399,7 +415,10 @@ function drawEcg() {
             1 - (hoverValue - signalMinimum) / amplitudeRange
         ) * plot.height;
 
-        ecgContext.strokeStyle = "rgba(19, 37, 46, 0.55)";
+        ecgContext.strokeStyle = getThemeColor(
+            "--ecg-hover",
+            "rgba(19, 37, 46, 0.55)"
+        );
         ecgContext.setLineDash([4, 4]);
         ecgContext.beginPath();
         ecgContext.moveTo(hoverX, plot.top);
@@ -408,7 +427,7 @@ function drawEcg() {
         ecgContext.setLineDash([]);
 
         if (Number.isFinite(hoverValue)) {
-            ecgContext.fillStyle = "#13252e";
+            ecgContext.fillStyle = getThemeColor("--ecg-hover-dot", "#13252e");
             ecgContext.beginPath();
             ecgContext.arc(hoverX, hoverY, 4, 0, Math.PI * 2);
             ecgContext.fill();
@@ -1070,6 +1089,9 @@ function generateReportPlot(record) {
 
 function generateReportPreview(record) {
     const recordName = escapeHtml(record.label || `Record ${recordSelect.value}`);
+    const reportTheme = document.documentElement.dataset.theme === "dark"
+        ? "dark"
+        : "light";
     const plot = generateReportPlot(record);
     const pWaveMeasurements = getPWavePeakMeasurements(record, filteredSignal);
     const pWaveRows = pWaveMeasurements.length
@@ -1083,50 +1105,110 @@ function generateReportPreview(record) {
         : '<tr><td colspan="5">No valid P-to-QRS annotations are available for this record.</td></tr>';
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${reportTheme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ECG report - ${recordName}</title>
     <style>
-        :root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; color: #16324f; background: #f3f6f3; }
+        :root {
+            color-scheme: light;
+            --report-page: #f3f6f3;
+            --report-surface: #ffffff;
+            --report-text: #16324f;
+            --report-secondary: #304852;
+            --report-muted: #62747b;
+            --report-header: #16324f;
+            --report-header-text: #ffffff;
+            --report-header-muted: #e5eef4;
+            --report-grid: #e6eeeb;
+            --report-border: #e1e8e6;
+            --report-table-heading: #eaf5f3;
+            --report-shadow: 0 18px 50px rgba(18, 55, 67, .12);
+            --report-accent: #087c64;
+            --report-accent-text: #ffffff;
+            --report-raw: #2878b5;
+            --report-filtered: #d97706;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--report-text);
+            background: var(--report-page);
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --report-page: #091115;
+            --report-surface: #111c21;
+            --report-text: #e8f0ee;
+            --report-secondary: #b0c0bc;
+            --report-muted: #91a6a1;
+            --report-header: #071b23;
+            --report-header-text: #f4fbf9;
+            --report-header-muted: #b8cbc6;
+            --report-grid: #294047;
+            --report-border: #30434a;
+            --report-table-heading: #162a27;
+            --report-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+            --report-accent: #76e2be;
+            --report-accent-text: #07161c;
+            --report-raw: #63baf2;
+            --report-filtered: #f5b95b;
+        }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 40px 20px; }
-        main { max-width: 1000px; margin: 0 auto; padding: 42px; background: #fff; border-radius: 18px; box-shadow: 0 18px 50px rgba(18, 55, 67, .12); }
-        header { padding: 28px; border-radius: 12px; background: #16324f; color: #fff; }
+        main { max-width: 1000px; margin: 0 auto; padding: 42px; background: var(--report-surface); border-radius: 18px; box-shadow: var(--report-shadow); }
+        header { padding: 28px; border-radius: 12px; background: var(--report-header); color: var(--report-header-text); }
         h1 { margin: 0 0 10px; font-size: 1.6rem; }
-        header p { margin: 0; color: #e5eef4; }
+        header p { margin: 0; color: var(--report-header-muted); }
         h2 { margin: 32px 0 14px; font-size: 1.2rem; }
         .report-chart { display: block; width: 100%; height: auto; overflow: visible; }
-        .chart-grid line { stroke: #e6eeeb; stroke-width: 1; }
-        .chart-grid text { fill: #62747b; font-size: 12px; }
+        .chart-grid line { stroke: var(--report-grid); stroke-width: 1; }
+        .chart-grid text { fill: var(--report-muted); font-size: 12px; }
         .chart-raw, .chart-filtered { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-        .chart-raw { stroke: #2878b5; }
-        .chart-filtered { stroke: #d97706; stroke-dasharray: 7 4; }
-        .chart-axis-label { fill: #16324f; font-size: 13px; }
-        .legend-groups { display: grid; justify-content: center; gap: 16px; margin: 12px 0 28px; color: #304852; }
+        .chart-raw { stroke: var(--report-raw); }
+        .chart-filtered { stroke: var(--report-filtered); stroke-dasharray: 7 4; }
+        .chart-axis-label { fill: var(--report-text); font-size: 13px; }
+        .legend-groups { display: grid; justify-content: center; gap: 16px; margin: 12px 0 28px; color: var(--report-secondary); }
         .legend-group { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 12px; }
-        .legend-group h3 { margin: 0; color: #62747b; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+        .legend-group h3 { margin: 0; color: var(--report-muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
         .legend { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 0; }
         .legend span { display: inline-flex; align-items: center; gap: 8px; }
         .legend i { display: inline-block; flex: 0 0 26px; width: 26px; height: 0; border-top: 3px solid; }
-        .legend .raw-key { border-color: #2878b5; }
-        .legend .filtered-key { border-color: #d97706; border-top-style: dashed; }
+        .legend .raw-key { border-color: var(--report-raw); }
+        .legend .filtered-key { border-color: var(--report-filtered); border-top-style: dashed; }
         .actions { display: flex; justify-content: flex-end; margin-bottom: 18px; }
-        button { padding: 10px 16px; border: 0; border-radius: 8px; background: #16324f; color: white; font: inherit; font-weight: 650; cursor: pointer; }
-        button:hover { background: #087c64; }
+        button { padding: 10px 16px; border: 0; border-radius: 8px; background: var(--report-header); color: var(--report-header-text); font: inherit; font-weight: 650; cursor: pointer; }
+        button:hover { background: var(--report-accent); color: var(--report-accent-text); }
+        button:focus-visible { outline: 3px solid var(--report-accent); outline-offset: 3px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 14px; border-bottom: 1px solid #e1e8e6; text-align: left; }
-        th { background: #eaf5f3; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid var(--report-border); text-align: left; }
+        th { background: var(--report-table-heading); }
         .phase-legend i { flex-basis: 16px; width: 16px; height: 16px; border: 2px solid; border-radius: 3px; }
         .phase-legend i.phase-p { border-color: #208b94; background: rgba(100, 203, 213, .35); }
         .phase-legend i.phase-qrs { border-color: #b94734; background: rgba(238, 116, 95, .3); }
         .phase-legend i.phase-t { border-color: #9a6810; background: rgba(242, 184, 75, .35); }
-        .measurement-note { color: #62747b; font-size: .9rem; }
+        .measurement-note { color: var(--report-muted); font-size: .9rem; }
         @media print {
             @page { margin: 0; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            :root { background: #fff; }
+            :root,
+            :root[data-theme="dark"] {
+                color-scheme: light;
+                --report-page: #ffffff;
+                --report-surface: #ffffff;
+                --report-text: #16324f;
+                --report-secondary: #304852;
+                --report-muted: #62747b;
+                --report-header: #16324f;
+                --report-header-text: #ffffff;
+                --report-header-muted: #e5eef4;
+                --report-grid: #e6eeeb;
+                --report-border: #e1e8e6;
+                --report-table-heading: #eaf5f3;
+                --report-shadow: none;
+                --report-accent: #087c64;
+                --report-accent-text: #ffffff;
+                --report-raw: #2878b5;
+                --report-filtered: #d97706;
+            }
             body { padding: 12mm; }
             main { max-width: none; padding: 0; border-radius: 0; box-shadow: none; }
             .actions { display: none; }
@@ -1583,6 +1665,92 @@ document.addEventListener("visibilitychange", () => {
 
 });
 
+
+
+
+const THEME_STORAGE_KEY = "ecg-heart-theme";
+const themeToggle = document.getElementById("theme-toggle");
+const systemDarkMode = window.matchMedia("(prefers-color-scheme: dark)");
+
+function getSavedTheme() {
+    try {
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        return savedTheme === "dark" || savedTheme === "light"
+            ? savedTheme
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+function saveTheme(theme) {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+        // localStorage may be unavailable in private/restricted contexts.
+    }
+}
+
+function getInitialTheme() {
+    const savedTheme = getSavedTheme();
+    return savedTheme || (systemDarkMode.matches ? "dark" : "light");
+}
+
+function applyTheme(theme, persist = false) {
+    const darkMode = theme === "dark";
+
+    document.documentElement.dataset.theme = darkMode
+        ? "dark"
+        : "light";
+
+    if (themeToggle) {
+        themeToggle.setAttribute("aria-pressed", String(darkMode));
+        themeToggle.setAttribute(
+            "aria-label",
+            darkMode
+                ? "Switch to light mode"
+                : "Switch to dark mode"
+        );
+
+        const icon = themeToggle.querySelector(".theme-toggle__icon");
+        const label = themeToggle.querySelector(".theme-toggle__label");
+
+        if (icon) {
+            icon.textContent = darkMode ? "☀️" : "🌙";
+        }
+
+        if (label) {
+            label.textContent = darkMode
+                ? "Light mode"
+                : "Dark mode";
+        }
+    }
+
+    if (persist) {
+        saveTheme(darkMode ? "dark" : "light");
+    }
+
+    drawEcg();
+}
+
+if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+        const currentTheme = document.documentElement.dataset.theme;
+
+        applyTheme(
+            currentTheme === "dark" ? "light" : "dark",
+            true
+        );
+    });
+}
+
+systemDarkMode.addEventListener("change", (event) => {
+    if (getSavedTheme() === null) {
+        applyTheme(event.matches ? "dark" : "light");
+    }
+});
+
+applyTheme(getInitialTheme());
 
 
 initializeRecords();
