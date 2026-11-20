@@ -673,12 +673,52 @@ a:focus-visible {
     width: 100%;
     height: 100%;
     cursor: crosshair;
+    touch-action: pan-y;
+}
+
+#ecg-canvas[data-zoomed="true"] {
+    cursor: grab;
+}
+
+#ecg-canvas[data-panning="true"] {
+    cursor: grabbing;
+}
+
+.ecg-view-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 10px;
 }
 
 .signal-interaction-hint {
-    margin: 9px 3px 0;
+    margin: 0 3px;
     color: var(--text-secondary);
     font-size: 0.75rem;
+}
+
+.ecg-zoom-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+}
+
+.ecg-zoom-controls .control-button {
+    width: auto;
+    min-height: 36px;
+    padding: 0 12px;
+}
+
+.ecg-zoom-controls .ecg-zoom-button {
+    width: 36px;
+    padding: 0;
+    font-size: 1.05rem;
+}
+
+.ecg-reset-zoom-button {
+    min-width: 62px;
 }
 
 .canvas-axis-label {
@@ -1675,6 +1715,11 @@ span.phase-legend__t,
 
     #ecg-container {
         height: 330px;
+    }
+
+    .ecg-view-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .transport-bar {
