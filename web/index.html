@@ -230,6 +230,35 @@
                     <div class="canvas-axis-label axis-y">Amplitude</div>
                     <div class="canvas-axis-label axis-x">Time (s)</div>
                 </div>
+                <div class="ecg-view-toolbar">
+                    <p id="signal-interaction-hint" class="signal-interaction-hint">
+                        Wheel to zoom · drag to pan · click to position playback
+                    </p>
+                    <div class="ecg-zoom-controls" role="group" aria-label="ECG zoom controls">
+                        <button
+                            id="ecg-zoom-out-button"
+                            class="control-button control-button--secondary ecg-zoom-button"
+                            type="button"
+                            aria-label="Zoom out ECG"
+                            title="Zoom out"
+                            disabled
+                        >−</button>
+                        <button
+                            id="ecg-reset-zoom-button"
+                            class="control-button control-button--secondary ecg-reset-zoom-button"
+                            type="button"
+                            disabled
+                        >Reset</button>
+                        <button
+                            id="ecg-zoom-in-button"
+                            class="control-button control-button--secondary ecg-zoom-button"
+                            type="button"
+                            aria-label="Zoom in ECG"
+                            title="Zoom in"
+                            disabled
+                        >+</button>
+                    </div>
+                </div>
                 <div class="transport-bar">
 
                     <label class="field-group" for="record-select">
@@ -752,7 +781,7 @@
                 <ol class="guide-steps">
                     <li><strong>Choose a record and heart model.</strong> The selectors load an ECG and one of the available animated heart models.</li>
                     <li><strong>Play the cycle.</strong> Use Play, Pause, Restart, or choose a playback speed.</li>
-                    <li><strong>Position the timeline.</strong> Click or drag along the ECG trace to move the cursor to that moment. This does not start playback; use Play to resume, with the heart synchronized to the selected time.</li>
+                    <li><strong>Inspect and position the timeline.</strong> Scroll over the ECG to zoom around the pointer, drag a zoomed trace to pan, or use the −, Reset and + controls. Click the trace to move the playback cursor to that moment; use Play to resume with the heart synchronized to the selected time.</li>
                     <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
                     <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
                 </ol>

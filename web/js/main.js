@@ -9,6 +9,9 @@ const playButton = document.getElementById("play-button");
 const pauseButton = document.getElementById("pause-button");
 
 const restartButton = document.getElementById("restart-button");
+const zoomOutButton = document.getElementById("ecg-zoom-out-button");
+const resetZoomButton = document.getElementById("ecg-reset-zoom-button");
+const zoomInButton = document.getElementById("ecg-zoom-in-button");
 const recordSelect = document.getElementById("record-select");
 const speedSelect = document.getElementById("speed-select");
 const switchSignalButton = document.getElementById("switch-signal-button");
@@ -49,6 +52,11 @@ const QRS_ACTIVITY_NUMERICAL_EPSILON_MULTIPLIER = 32;
 const QRS_DEGENERATE_BASELINE_QUANTILE = 0.95;
 const ECG_Y_MINIMUM = -1.2;
 const ECG_Y_MAXIMUM = 1.2;
+const MIN_VIEWPORT_DURATION = 0.5;
+const BUTTON_ZOOM_FACTOR = 0.8;
+const WHEEL_ZOOM_SENSITIVITY = 0.0015;
+const PAN_MOVEMENT_THRESHOLD = 5;
+const VIEWPORT_EPSILON = 1e-6;
 
 let currentRecord = null;
 let filteredSignal = null;
@@ -75,6 +83,10 @@ let animationFrameId = null;
 let lastTimestamp = null;
 let hoveredTime = null;
 let isScrubbing = false;
+let isPanning = false;
+let ecgPointerGesture = null;
+let viewportStartTime = 0;
+let viewportEndTime = 0;
 
 
 
@@ -86,8 +98,142 @@ function getThemeColor(variableName, fallback) {
     return value || fallback;
 }
 
+function getEcgPlot(width, height) {
+    return {
+        left: 28,
+        top: 20,
+        width: Math.max(0, width - 56),
+        height: Math.max(0, height - 54)
+    };
+}
 
-function drawGrid(context, width, height, plot, duration) {
+function getViewportDuration() {
+    return Math.max(0, viewportEndTime - viewportStartTime);
+}
+
+function getMinimumViewportDuration() {
+    return Math.min(MIN_VIEWPORT_DURATION, playbackDuration);
+}
+
+function clampViewport(startTime = viewportStartTime, endTime = viewportEndTime) {
+    if (playbackDuration <= 0) {
+        viewportStartTime = 0;
+        viewportEndTime = 0;
+        return;
+    }
+
+    const requestedDuration = Number.isFinite(endTime - startTime)
+        ? endTime - startTime
+        : playbackDuration;
+    const duration = Math.min(
+        playbackDuration,
+        Math.max(getMinimumViewportDuration(), requestedDuration)
+    );
+    const latestStart = Math.max(0, playbackDuration - duration);
+
+    viewportStartTime = Math.min(Math.max(startTime, 0), latestStart);
+    viewportEndTime = viewportStartTime + duration;
+}
+
+function resetViewport() {
+    viewportStartTime = 0;
+    viewportEndTime = Math.max(0, playbackDuration);
+    hoveredTime = null;
+}
+
+function zoomViewportAroundTime(time, factor) {
+    const oldDuration = getViewportDuration();
+    if (
+        playbackDuration <= 0
+        || oldDuration <= 0
+        || !Number.isFinite(time)
+        || !Number.isFinite(factor)
+        || factor <= 0
+    ) {
+        return false;
+    }
+
+    const newDuration = Math.min(
+        playbackDuration,
+        Math.max(getMinimumViewportDuration(), oldDuration * factor)
+    );
+    if (Math.abs(newDuration - oldDuration) < VIEWPORT_EPSILON) {
+        return false;
+    }
+
+    const anchorTime = Math.min(Math.max(time, viewportStartTime), viewportEndTime);
+    const anchorRatio = (anchorTime - viewportStartTime) / oldDuration;
+
+    // Keep the ECG time below the pointer at the same relative canvas position.
+    const newStartTime = anchorTime - anchorRatio * newDuration;
+    clampViewport(newStartTime, newStartTime + newDuration);
+    return true;
+}
+
+function panViewport(deltaTime) {
+    if (!Number.isFinite(deltaTime) || playbackDuration <= 0) {
+        return false;
+    }
+
+    const previousStart = viewportStartTime;
+    const duration = getViewportDuration();
+    clampViewport(
+        viewportStartTime + deltaTime,
+        viewportStartTime + deltaTime + duration
+    );
+    return Math.abs(viewportStartTime - previousStart) >= VIEWPORT_EPSILON;
+}
+
+// Every ECG layer uses these transformations, so overlays stay synchronized.
+function timeToCanvasX(time, plot) {
+    const duration = getViewportDuration();
+    if (duration <= 0 || plot.width <= 0) {
+        return plot.left;
+    }
+
+    return plot.left + ((time - viewportStartTime) / duration) * plot.width;
+}
+
+function canvasXToTime(canvasX, plot) {
+    if (plot.width <= 0 || getViewportDuration() <= 0) {
+        return null;
+    }
+
+    const ratio = (canvasX - plot.left) / plot.width;
+    return viewportStartTime + ratio * getViewportDuration();
+}
+
+function isViewportZoomed() {
+    return playbackDuration > 0
+        && getViewportDuration() < playbackDuration - VIEWPORT_EPSILON;
+}
+
+function isTimeInViewport(time) {
+    return time >= viewportStartTime - VIEWPORT_EPSILON
+        && time <= viewportEndTime + VIEWPORT_EPSILON;
+}
+
+function getGridStep(duration) {
+    if (duration <= 0) {
+        return 0.2;
+    }
+
+    const idealStep = duration / 50;
+    const magnitude = 10 ** Math.floor(Math.log10(idealStep));
+    const normalizedStep = idealStep / magnitude;
+    const multiplier = normalizedStep <= 1
+        ? 1
+        : normalizedStep <= 2
+            ? 2
+            : normalizedStep <= 5
+                ? 5
+                : 10;
+
+    return multiplier * magnitude;
+}
+
+
+function drawGrid(context, height, plot) {
 
     const horizontalLineCount = 8;
 
@@ -119,23 +265,23 @@ function drawGrid(context, width, height, plot, duration) {
 
 
 
-    const minorStep = 0.2;
+    const minorStep = getGridStep(getViewportDuration());
+    const firstStep = Math.ceil((viewportStartTime - VIEWPORT_EPSILON) / minorStep);
+    const lastStep = Math.floor((viewportEndTime + VIEWPORT_EPSILON) / minorStep);
+    const majorStep = minorStep * 5;
+    const labelDecimals = majorStep < 0.1 ? 2 : majorStep < 1 ? 1 : 0;
 
-    const stepCount = Math.round(duration / minorStep);
-
-
-
-    for (let step = 0; step <= stepCount; step += 1) {
+    for (let step = firstStep; step <= lastStep; step += 1) {
 
         const time = step * minorStep;
 
-        const x = plot.left + (time / duration) * plot.width;
+        const x = timeToCanvasX(time, plot);
 
-        const isSecond = step % 5 === 0;
+        const isMajorLine = step % 5 === 0;
 
 
 
-        context.strokeStyle = isSecond
+        context.strokeStyle = isMajorLine
             ? getThemeColor("--ecg-grid-major", "#d7e6e2")
             : getThemeColor("--ecg-grid-minor", "#edf3f1");
 
@@ -151,23 +297,19 @@ function drawGrid(context, width, height, plot, duration) {
 
 
 
-        if (step % 10 === 0 && time <= duration) {
+        if (isMajorLine) {
 
             context.fillStyle = getThemeColor("--ecg-axis", "#80918f");
 
             context.font = "10px Avenir, sans-serif";
 
-            context.textAlign = step === 0
-
+            context.textAlign = x < plot.left + 22
                 ? "left"
-
-                : time === duration
-
+                : x > plot.left + plot.width - 22
                     ? "right"
-
                     : "center";
 
-            context.fillText(`${time.toFixed(0)}s`, x, height - 10);
+            context.fillText(`${time.toFixed(labelDecimals)}s`, x, height - 10);
 
         }
 
@@ -175,7 +317,7 @@ function drawGrid(context, width, height, plot, duration) {
 
 }
 
-function drawPhaseRegions(context, plot, duration) {
+function drawPhaseRegions(context, plot) {
     const phases = [
         {key: "P", color: "rgba(100, 203, 213, 0.22)"},
         {key: "QRS", color: "rgba(238, 116, 95, 0.2)"},
@@ -195,14 +337,14 @@ function drawPhaseRegions(context, plot, duration) {
                 continue;
             }
 
-            const start = Math.max(0, interval[0]);
-            const end = Math.min(duration, interval[1]);
+            const start = Math.max(viewportStartTime, interval[0]);
+            const end = Math.min(viewportEndTime, interval[1]);
             if (end <= start) {
                 continue;
             }
 
-            const x = plot.left + (start / duration) * plot.width;
-            const width = ((end - start) / duration) * plot.width;
+            const x = timeToCanvasX(start, plot);
+            const width = timeToCanvasX(end, plot) - x;
             context.fillRect(x, plot.top, width, plot.height);
         }
     }
@@ -232,12 +374,21 @@ function getDisplayedSignal() {
 function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
     const signal = getDisplayedSignal();
     const amplitudeRange = signalMaximum - signalMinimum || 1;
-
+    const firstVisibleSampleIndex = Math.max(
+        0,
+        Math.floor(viewportStartTime * currentRecord.fs) - 1
+    );
+    const lastVisibleSampleIndex = Math.min(
+        signal.length - 1,
+        Math.ceil(viewportEndTime * currentRecord.fs) + 1
+    );
     const finalSampleIndex = lastSampleIndex === undefined
+        ? lastVisibleSampleIndex
+        : Math.min(lastVisibleSampleIndex, lastSampleIndex);
 
-        ? signal.length - 1
-
-        : Math.min(Math.max(lastSampleIndex, 0), signal.length - 1);
+    if (finalSampleIndex < firstVisibleSampleIndex) {
+        return;
+    }
 
 
 
@@ -257,7 +408,11 @@ function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
 
 
 
-    for (let sampleIndex = 0; sampleIndex <= finalSampleIndex; sampleIndex += 1) {
+    for (
+        let sampleIndex = firstVisibleSampleIndex;
+        sampleIndex <= finalSampleIndex;
+        sampleIndex += 1
+    ) {
 
         const value = Number(signal[sampleIndex]);
 
@@ -275,7 +430,7 @@ function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
 
         const sampleTime = sampleIndex / currentRecord.fs;
 
-        const x = plot.left + (sampleTime / playbackDuration) * plot.width;
+        const x = timeToCanvasX(sampleTime, plot);
 
         const normalizedValue = (value - signalMinimum) / amplitudeRange;
 
@@ -347,23 +502,16 @@ function drawEcg() {
 
     ecgContext.fillRect(0, 0, bounds.width, bounds.height);
 
-
-
-    const plot = {
-
-        left: 28,
-
-        top: 20,
-
-        width: bounds.width - 56,
-
-        height: bounds.height - 54
-
-    };
+    ecgCanvas.dataset.zoomed = String(isViewportZoomed());
+    ecgCanvas.dataset.panning = String(isPanning);
 
 
 
-    drawGrid(ecgContext, bounds.width, bounds.height, plot, playbackDuration || 10);
+    const plot = getEcgPlot(bounds.width, bounds.height);
+
+
+
+    drawGrid(ecgContext, bounds.height, plot);
 
 
 
@@ -373,7 +521,12 @@ function drawEcg() {
         return;
     }
 
-    drawPhaseRegions(ecgContext, plot, playbackDuration);
+    ecgContext.save();
+    ecgContext.beginPath();
+    ecgContext.rect(plot.left, plot.top, plot.width, plot.height);
+    ecgContext.clip();
+
+    drawPhaseRegions(ecgContext, plot);
 
     const signalName = showingFilteredSignal ? "Filtered ECG" : "Raw ECG";
     const signalColor = showingFilteredSignal
@@ -388,14 +541,9 @@ function drawEcg() {
 
 
     const currentSampleIndex = getCurrentSampleIndex();
-    const progress = Math.min(currentTime / playbackDuration, 1);
-    const cursorX = plot.left + progress * plot.width;
     const selectedSignal = getDisplayedSignal();
     const selectedValue = Number(selectedSignal[currentSampleIndex]);
     const amplitudeRange = signalMaximum - signalMinimum || 1;
-    const cursorY = plot.top + (
-        1 - (selectedValue - signalMinimum) / amplitudeRange
-    ) * plot.height;
 
     traceSignal(
         ecgContext,
@@ -405,27 +553,36 @@ function drawEcg() {
         currentSampleIndex
     );
 
-    ecgContext.strokeStyle = showingFilteredSignal
-        ? getThemeColor("--ecg-cursor-filtered", "rgba(217, 119, 6, 0.52)")
-        : getThemeColor("--ecg-cursor-raw", "rgba(8, 124, 100, 0.52)");
-    ecgContext.lineWidth = 1;
-    ecgContext.beginPath();
-    ecgContext.moveTo(cursorX, plot.top);
-    ecgContext.lineTo(cursorX, plot.top + plot.height);
-    ecgContext.stroke();
+    if (isTimeInViewport(currentTime)) {
+        const cursorX = timeToCanvasX(currentTime, plot);
+        const cursorY = plot.top + (
+            1 - (selectedValue - signalMinimum) / amplitudeRange
+        ) * plot.height;
 
-    ecgContext.fillStyle = signalColor;
-    ecgContext.beginPath();
-    ecgContext.arc(cursorX, cursorY, 4, 0, Math.PI * 2);
-    ecgContext.fill();
+        ecgContext.strokeStyle = showingFilteredSignal
+            ? getThemeColor("--ecg-cursor-filtered", "rgba(217, 119, 6, 0.52)")
+            : getThemeColor("--ecg-cursor-raw", "rgba(8, 124, 100, 0.52)");
+        ecgContext.lineWidth = 1;
+        ecgContext.beginPath();
+        ecgContext.moveTo(cursorX, plot.top);
+        ecgContext.lineTo(cursorX, plot.top + plot.height);
+        ecgContext.stroke();
 
-    if (hoveredTime !== null) {
+        if (Number.isFinite(selectedValue)) {
+            ecgContext.fillStyle = signalColor;
+            ecgContext.beginPath();
+            ecgContext.arc(cursorX, cursorY, 4, 0, Math.PI * 2);
+            ecgContext.fill();
+        }
+    }
+
+    if (hoveredTime !== null && isTimeInViewport(hoveredTime) && !isPanning) {
         const hoverSampleIndex = Math.min(
-            Math.floor(hoveredTime * currentRecord.fs),
+            Math.max(Math.floor(hoveredTime * currentRecord.fs), 0),
             selectedSignal.length - 1
         );
         const hoverValue = Number(selectedSignal[hoverSampleIndex]);
-        const hoverX = plot.left + (hoveredTime / playbackDuration) * plot.width;
+        const hoverX = timeToCanvasX(hoveredTime, plot);
         const hoverY = plot.top + (
             1 - (hoverValue - signalMinimum) / amplitudeRange
         ) * plot.height;
@@ -449,9 +606,11 @@ function drawEcg() {
         }
     }
 
+    ecgContext.restore();
+
     ecgCanvas.setAttribute(
         "aria-label",
-        `${signalName} for ${currentRecord.label}, duration ${playbackDuration.toFixed(1)} seconds.`
+        `${signalName} for ${currentRecord.label}, showing ${viewportStartTime.toFixed(2)} to ${viewportEndTime.toFixed(2)} seconds of ${playbackDuration.toFixed(1)} seconds.`
     );
 }
 
@@ -582,6 +741,10 @@ function updateControls() {
     pauseButton.disabled = recordUnavailable || !isPlaying;
 
     restartButton.disabled = recordUnavailable;
+    zoomInButton.disabled = recordUnavailable
+        || getViewportDuration() <= getMinimumViewportDuration() + VIEWPORT_EPSILON;
+    zoomOutButton.disabled = recordUnavailable || !isViewportZoomed();
+    resetZoomButton.disabled = recordUnavailable || !isViewportZoomed();
     switchSignalButton.disabled = recordUnavailable;
     viewReportButton.disabled = recordUnavailable;
     switchSignalButton.textContent = showingFilteredSignal
@@ -1590,18 +1753,60 @@ function getCanvasTime(event) {
     }
 
     const bounds = ecgCanvas.getBoundingClientRect();
-    const plotLeft = 28;
-    const plotWidth = bounds.width - 56;
+    const plot = getEcgPlot(bounds.width, bounds.height);
     const canvasX = event.clientX - bounds.left;
 
-    if (plotWidth <= 0 || canvasX < plotLeft || canvasX > plotLeft + plotWidth) {
+    if (
+        plot.width <= 0
+        || canvasX < plot.left
+        || canvasX > plot.left + plot.width
+    ) {
         return null;
     }
 
-    return ((canvasX - plotLeft) / plotWidth) * playbackDuration;
+    // Pointer coordinates are CSS pixels; the current time viewport supplies the scale.
+    return canvasXToTime(canvasX, plot);
 }
 
 function handleEcgPointerMove(event) {
+    if (ecgPointerGesture && event.pointerId === ecgPointerGesture.pointerId) {
+        const totalDeltaX = event.clientX - ecgPointerGesture.startClientX;
+        const totalDeltaY = event.clientY - ecgPointerGesture.startClientY;
+        const passedThreshold = Math.hypot(totalDeltaX, totalDeltaY)
+            >= PAN_MOVEMENT_THRESHOLD;
+
+        if (!isPanning && !isScrubbing && passedThreshold) {
+            ecgPointerGesture.moved = true;
+            if (
+                ecgPointerGesture.startedZoomed
+                && Math.abs(totalDeltaX) >= Math.abs(totalDeltaY)
+            ) {
+                isPanning = true;
+                hoveredTime = null;
+                drawEcg();
+            } else if (!ecgPointerGesture.startedZoomed) {
+                isScrubbing = true;
+                stopAnimation();
+            }
+        }
+
+        if (isPanning) {
+            event.preventDefault();
+            const bounds = ecgCanvas.getBoundingClientRect();
+            const plot = getEcgPlot(bounds.width, bounds.height);
+            const deltaX = event.clientX - ecgPointerGesture.lastClientX;
+            ecgPointerGesture.lastClientX = event.clientX;
+
+            if (plot.width > 0) {
+                // Dragging left reveals later time; dragging right reveals earlier time.
+                panViewport(-(deltaX / plot.width) * getViewportDuration());
+                updateControls();
+                drawEcg();
+            }
+            return;
+        }
+    }
+
     if (isScrubbing) {
         updateEcgScrub(event);
         return;
@@ -1612,7 +1817,7 @@ function handleEcgPointerMove(event) {
 }
 
 function handleEcgPointerLeave() {
-    if (isScrubbing) {
+    if (ecgPointerGesture || isScrubbing || isPanning) {
         return;
     }
 
@@ -1631,28 +1836,96 @@ function updateEcgScrub(event) {
     updateInterface();
 }
 
-function startEcgScrub(event) {
+function startEcgPointerGesture(event) {
     if (event.button !== 0 || getCanvasTime(event) === null) {
         return;
     }
 
-    isScrubbing = true;
-    stopAnimation();
+    ecgPointerGesture = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        lastClientX: event.clientX,
+        moved: false,
+        startedZoomed: isViewportZoomed()
+    };
     ecgCanvas.setPointerCapture(event.pointerId);
-    updateEcgScrub(event);
 }
 
-function finishEcgScrub(event) {
-    if (!isScrubbing) {
+function finishEcgPointerGesture(event) {
+    if (!ecgPointerGesture || event.pointerId !== ecgPointerGesture.pointerId) {
         return;
     }
 
-    updateEcgScrub(event);
+    const shouldPositionPlayback = isScrubbing
+        || (!isPanning && !ecgPointerGesture.moved);
+    ecgPointerGesture = null;
+    isPanning = false;
     isScrubbing = false;
 
     if (ecgCanvas.hasPointerCapture(event.pointerId)) {
         ecgCanvas.releasePointerCapture(event.pointerId);
     }
+
+    if (shouldPositionPlayback) {
+        stopAnimation();
+        updateEcgScrub(event);
+        return;
+    }
+
+    hoveredTime = getCanvasTime(event);
+    updateControls();
+    drawEcg();
+}
+
+function cancelEcgPointerGesture() {
+    ecgPointerGesture = null;
+    isScrubbing = false;
+    isPanning = false;
+    hoveredTime = null;
+    drawEcg();
+}
+
+function handleEcgWheel(event) {
+    const pointerTime = getCanvasTime(event);
+    if (pointerTime === null || event.deltaY === 0) {
+        return;
+    }
+
+    const deltaScale = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? window.innerHeight
+            : 1;
+    const zoomFactor = Math.min(
+        2,
+        Math.max(
+            0.5,
+            Math.exp(event.deltaY * deltaScale * WHEEL_ZOOM_SENSITIVITY)
+        )
+    );
+
+    if (zoomViewportAroundTime(pointerTime, zoomFactor)) {
+        event.preventDefault();
+        hoveredTime = pointerTime;
+        updateControls();
+        drawEcg();
+    }
+}
+
+function zoomViewportFromCenter(factor) {
+    const viewportCenter = viewportStartTime + getViewportDuration() / 2;
+    if (zoomViewportAroundTime(viewportCenter, factor)) {
+        hoveredTime = null;
+        updateControls();
+        drawEcg();
+    }
+}
+
+function resetEcgViewport() {
+    resetViewport();
+    updateControls();
+    drawEcg();
 }
 
 function showGuidePage(pageName) {
@@ -1773,6 +2046,7 @@ async function loadRecord(recordId) {
     qrsAmplitudeProfile = [];
     showingFilteredSignal = false;
     playbackDuration = 0;
+    resetViewport();
 
     loadError = null;
 
@@ -1803,6 +2077,7 @@ async function loadRecord(recordId) {
         filteredSignal = recordFilteredSignal;
         qrsAmplitudeProfile = recordQrsAmplitudeProfile;
         playbackDuration = record.ecg.length / record.fs;
+        resetViewport();
 
         ecgCanvas.setAttribute(
 
@@ -1933,18 +2208,24 @@ guidePageButtons.forEach((button) => {
         showGuidePage(button.dataset.guidePage);
     });
 });
-ecgCanvas.addEventListener("pointerdown", startEcgScrub);
+ecgCanvas.addEventListener("pointerdown", startEcgPointerGesture);
 ecgCanvas.addEventListener("pointermove", handleEcgPointerMove);
 ecgCanvas.addEventListener("pointerleave", handleEcgPointerLeave);
-ecgCanvas.addEventListener("pointerup", finishEcgScrub);
-ecgCanvas.addEventListener("pointercancel", () => {
-    isScrubbing = false;
-    hoveredTime = null;
-    drawEcg();
-});
+ecgCanvas.addEventListener("pointerup", finishEcgPointerGesture);
+ecgCanvas.addEventListener("pointercancel", cancelEcgPointerGesture);
 ecgCanvas.addEventListener("lostpointercapture", () => {
-    isScrubbing = false;
+    if (ecgPointerGesture) {
+        cancelEcgPointerGesture();
+    }
 });
+ecgCanvas.addEventListener("wheel", handleEcgWheel, {passive: false});
+zoomInButton.addEventListener("click", () => {
+    zoomViewportFromCenter(BUTTON_ZOOM_FACTOR);
+});
+zoomOutButton.addEventListener("click", () => {
+    zoomViewportFromCenter(1 / BUTTON_ZOOM_FACTOR);
+});
+resetZoomButton.addEventListener("click", resetEcgViewport);
 recordSelect.addEventListener("change", () => loadRecord(recordSelect.value));
 
 speedSelect.addEventListener("change", changePlaybackSpeed);
