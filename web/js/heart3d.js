@@ -177,6 +177,16 @@ const viewer = {
 
     modelScaleFactor: 1,
 
+    cameraMode: "orbit",
+
+    orbitTarget: null,
+
+    referenceGrid: null,
+
+    orbitMinDistance: 0.9,
+
+    lastRenderTimestamp: null,
+
     statusElement: null,
 
     syncState: null,
@@ -321,6 +331,7 @@ function fitCameraToModel() {
 
 
     viewer.controls.target.copy(center);
+    viewer.orbitTarget = center.clone();
 
     viewer.camera.position.copy(center).addScaledVector(viewDirection, cameraDistance);
 
@@ -332,11 +343,13 @@ function fitCameraToModel() {
 
 
 
-    viewer.controls.minDistance = Math.max(modelSize * 0.9, cameraDistance * 0.55);
+    viewer.orbitMinDistance = Math.max(modelSize * 0.9, cameraDistance * 0.55);
+    viewer.controls.minDistance = viewer.cameraMode === "explore" ? 0.01 : viewer.orbitMinDistance;
 
     viewer.controls.maxDistance = Math.max(modelSize * 4, cameraDistance * 2.4);
 
     viewer.controls.update();
+    setCameraMode(viewer.cameraMode);
 
 }
 
@@ -378,7 +391,7 @@ function resizeViewer() {
 
 
 
-    if (viewer.modelRoot) {
+    if (viewer.modelRoot && viewer.cameraMode === "orbit") {
 
         fitCameraToModel();
 
@@ -516,12 +529,16 @@ function centerAndScaleModel(model) {
 }
 
 function updateModelScale(factor) {
-    if (!Number.isFinite(factor) || factor < 0.5 || factor > 2) {
-        console.error("The 3D heart scale must be between 0.5× and 2.0×.");
+    if (!Number.isFinite(factor) || factor < 0.5 || factor > 4) {
+        console.error("The 3D heart scale must be between 0.5× and 4.0×.");
         return;
     }
 
     viewer.modelScaleFactor = factor;
+    if (viewer.referenceGrid) {
+        viewer.referenceGrid.scale.setScalar(factor);
+        viewer.referenceGrid.position.y = -1.3 * factor;
+    }
     const scaleOutput = document.getElementById("heart-model-scale-value");
     if (scaleOutput) {
         scaleOutput.value = `${factor.toFixed(1)}×`;
@@ -533,6 +550,140 @@ function updateModelScale(factor) {
 
     viewer.modelRoot.scale.setScalar(viewer.modelRoot.userData.baseScale * factor);
     viewer.modelRoot.updateMatrixWorld(true);
+}
+
+const cameraKeys = new Set();
+const freePointers = new Map();
+
+function setCameraMode(mode) {
+    if (!viewer.controls || !["orbit", "explore"].includes(mode)) return;
+    cameraKeys.clear();
+    freePointers.clear();
+    const previousMode = viewer.cameraMode;
+    viewer.cameraMode = mode;
+    const free = mode === "explore";
+    // OrbitControls moves the camera around the heart. Free view has its
+    // own look/translation controls and never writes the model transform.
+    viewer.controls.enabled = mode === "orbit";
+    viewer.controls.enablePan = false;
+    viewer.controls.minDistance = free ? 0.01 : viewer.orbitMinDistance;
+    viewer.controls.minPolarAngle = Math.PI * 0.12;
+    viewer.controls.maxPolarAngle = Math.PI * 0.88;
+    viewer.camera.near = free ? 0.001 : 0.01;
+    viewer.camera.updateProjectionMatrix();
+    if (mode === "orbit" && previousMode !== "orbit" && viewer.orbitTarget) {
+        viewer.controls.target.copy(viewer.orbitTarget);
+    }
+    document.getElementById("camera-mode").value = mode;
+    const help = free
+            ? "Drag to look, right-drag to pan, scroll to move. W/S forward/back, A/D left/right, Q/E down/up. On touch: drag to look, two fingers to pan/pinch."
+            : "The heart stays in place. Drag to orbit the camera around it; scroll or pinch to move closer.";
+    document.getElementById("camera-help").textContent = help;
+    viewer.renderer.domElement.setAttribute("aria-label", "3D heart viewer. " + help);
+    viewer.renderer.domElement.style.cursor = "grab";
+    if (mode === "orbit") viewer.controls.update();
+}
+
+function translateFreeCamera(forward, right, up) {
+    const THREE = viewer.THREE;
+    const movement = viewer.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(forward);
+    movement.addScaledVector(new THREE.Vector3().setFromMatrixColumn(viewer.camera.matrixWorld, 0), right);
+    movement.addScaledVector(new THREE.Vector3().setFromMatrixColumn(viewer.camera.matrixWorld, 1), up);
+    viewer.camera.position.add(movement);
+    viewer.controls.target.add(movement);
+}
+
+function lookFreeCamera(dx, dy) {
+    const THREE = viewer.THREE;
+    const distance = Math.max(viewer.camera.position.distanceTo(viewer.controls.target), 0.1);
+    const euler = new THREE.Euler().setFromQuaternion(viewer.camera.quaternion, "YXZ");
+    euler.y -= dx * 0.003;
+    euler.x = Math.max(-Math.PI / 2 + 0.02, Math.min(Math.PI / 2 - 0.02, euler.x - dy * 0.003));
+    euler.z = 0;
+    viewer.camera.quaternion.setFromEuler(euler);
+    viewer.controls.target.copy(viewer.camera.position).addScaledVector(viewer.camera.getWorldDirection(new THREE.Vector3()), distance);
+}
+
+function freePanScale() {
+    const distance = viewer.orbitTarget ? viewer.camera.position.distanceTo(viewer.orbitTarget) : TARGET_MODEL_SIZE;
+    return 2 * Math.tan(viewer.THREE.MathUtils.degToRad(viewer.camera.fov / 2))
+        * Math.max(distance, 0.2) / Math.max(viewer.renderer.domElement.clientHeight, 1);
+}
+
+function handleFreePointerDown(event) {
+    if (viewer.cameraMode !== "explore") return;
+    event.preventDefault();
+    freePointers.set(event.pointerId, {x: event.clientX, y: event.clientY, type: event.pointerType, button: event.button});
+    viewer.renderer.domElement.setPointerCapture(event.pointerId);
+}
+
+function handleFreePointerMove(event) {
+    const old = freePointers.get(event.pointerId);
+    if (viewer.cameraMode !== "explore" || !old) return;
+    event.preventDefault();
+    const before = [...freePointers.values()];
+    const oldDistance = before.length === 2 ? Math.hypot(before[0].x - before[1].x, before[0].y - before[1].y) : 0;
+    const dx = event.clientX - old.x, dy = event.clientY - old.y;
+    freePointers.set(event.pointerId, {...old, x: event.clientX, y: event.clientY});
+    const after = [...freePointers.values()];
+    if (before.length === 2 && before.every(point => point.type === "touch")) {
+        const distance = Math.hypot(after[0].x - after[1].x, after[0].y - after[1].y);
+        const scale = freePanScale();
+        translateFreeCamera((distance - oldDistance) * scale, -dx * scale / 2, dy * scale / 2);
+    } else if (old.button === 2 || old.button === 1) {
+        const scale = freePanScale();
+        translateFreeCamera(0, -dx * scale, dy * scale);
+    } else {
+        lookFreeCamera(dx, dy);
+    }
+}
+
+function handleFreePointerUp(event) {
+    freePointers.delete(event.pointerId);
+    if (viewer.renderer.domElement.hasPointerCapture(event.pointerId)) viewer.renderer.domElement.releasePointerCapture(event.pointerId);
+}
+
+function handleFreeWheel(event) {
+    if (viewer.cameraMode !== "explore") return;
+    event.preventDefault();
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewer.renderer.domElement.clientHeight : 1;
+    const delta = Math.max(-120, Math.min(120, event.deltaY * unit));
+    translateFreeCamera(-delta * 0.002 * viewer.modelScaleFactor, 0, 0);
+}
+
+function resetCameraView() {
+    if (!viewer.camera || !viewer.controls) return;
+    cameraKeys.clear();
+    freePointers.clear();
+    viewer.camera.position.set(0, 0, 3);
+    viewer.controls.target.set(0, 0, 0);
+    fitCameraToModel();
+}
+
+function handleCameraKeyDown(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (viewer.cameraMode !== "explore" || !["KeyW", "KeyS", "KeyA", "KeyD", "KeyQ", "KeyE"].includes(event.code)) return;
+    event.preventDefault();
+    cameraKeys.add(event.code);
+}
+
+function moveExploreCamera(delta) {
+    if (viewer.cameraMode !== "explore" || !cameraKeys.size || !viewer.modelRoot) return;
+    const THREE = viewer.THREE;
+    const movement = new THREE.Vector3();
+    const forward = viewer.camera.getWorldDirection(new THREE.Vector3());
+    const right = new THREE.Vector3().setFromMatrixColumn(viewer.camera.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(viewer.camera.matrixWorld, 1);
+    if (cameraKeys.has("KeyW")) movement.add(forward);
+    if (cameraKeys.has("KeyS")) movement.sub(forward);
+    if (cameraKeys.has("KeyD")) movement.add(right);
+    if (cameraKeys.has("KeyA")) movement.sub(right);
+    if (cameraKeys.has("KeyE")) movement.add(up);
+    if (cameraKeys.has("KeyQ")) movement.sub(up);
+    if (movement.lengthSq() === 0) return;
+    movement.normalize().multiplyScalar(delta * TARGET_MODEL_SIZE * viewer.modelScaleFactor * 0.5);
+    viewer.camera.position.add(movement);
+    viewer.controls.target.add(movement);
 }
 
 function disposeModelResources(model) {
@@ -1142,7 +1293,7 @@ function createLights(THREE, scene) {
 
 
 
-function renderViewer() {
+function renderViewer(timestamp) {
 
     if (!viewer.renderer || !viewer.scene || !viewer.camera) {
 
@@ -1152,10 +1303,11 @@ function renderViewer() {
 
 
 
-    if (viewer.controls) {
-
+    const delta = viewer.lastRenderTimestamp === null ? 0 : Math.min((timestamp - viewer.lastRenderTimestamp) / 1000, 0.05);
+    viewer.lastRenderTimestamp = timestamp;
+    moveExploreCamera(delta);
+    if (viewer.controls && viewer.cameraMode === "orbit") {
         viewer.controls.update();
-
     }
 
 
@@ -1253,6 +1405,20 @@ async function initializeHeartViewer() {
         viewer.renderer.toneMappingExposure = 1.08;
 
         viewer.renderer.domElement.className = "heart-viewer-canvas";
+        viewer.renderer.domElement.tabIndex = 0;
+        viewer.renderer.domElement.addEventListener("pointerdown", () => viewer.renderer.domElement.focus({preventScroll: true}));
+        viewer.renderer.domElement.addEventListener("keydown", handleCameraKeyDown);
+        viewer.renderer.domElement.addEventListener("keyup", event => cameraKeys.delete(event.code));
+        viewer.renderer.domElement.addEventListener("blur", () => cameraKeys.clear());
+        viewer.renderer.domElement.addEventListener("pointerdown", handleFreePointerDown);
+        viewer.renderer.domElement.addEventListener("pointermove", handleFreePointerMove);
+        viewer.renderer.domElement.addEventListener("pointerup", handleFreePointerUp);
+        viewer.renderer.domElement.addEventListener("pointercancel", handleFreePointerUp);
+        viewer.renderer.domElement.addEventListener("lostpointercapture", event => freePointers.delete(event.pointerId));
+        viewer.renderer.domElement.addEventListener("wheel", handleFreeWheel, {passive: false});
+        viewer.renderer.domElement.addEventListener("contextmenu", event => { if (viewer.cameraMode === "explore") event.preventDefault(); });
+        window.addEventListener("blur", () => { cameraKeys.clear(); freePointers.clear(); });
+        document.addEventListener("visibilitychange", () => { cameraKeys.clear(); freePointers.clear(); viewer.lastRenderTimestamp = null; });
 
         viewer.renderer.domElement.setAttribute(
 
@@ -1279,6 +1445,14 @@ async function initializeHeartViewer() {
 
 
         createLights(THREE, viewer.scene);
+        // A world-space floor makes camera motion visible relative to the
+        // stationary heart; unlike a CSS grid it changes with perspective.
+        viewer.referenceGrid = new THREE.GridHelper(10, 20, 0x6a9691, 0x6a9691);
+        viewer.referenceGrid.position.y = -1.3;
+        viewer.referenceGrid.material.transparent = true;
+        viewer.referenceGrid.material.opacity = 0.24;
+        viewer.referenceGrid.material.depthWrite = false;
+        viewer.scene.add(viewer.referenceGrid);
 
         container.appendChild(viewer.renderer.domElement);
 
@@ -1313,6 +1487,13 @@ async function initializeHeartViewer() {
         viewer.renderer.setAnimationLoop(renderViewer);
         const modelSelect = document.getElementById("heart-model-select");
         const modelScaleSlider = document.getElementById("heart-model-scale");
+        const cameraModeSelect = document.getElementById("camera-mode");
+        const resetCameraButton = document.getElementById("reset-camera-button");
+        cameraModeSelect.disabled = false;
+        resetCameraButton.disabled = false;
+        cameraModeSelect.addEventListener("change", () => setCameraMode(cameraModeSelect.value));
+        resetCameraButton.addEventListener("click", resetCameraView);
+        setCameraMode("orbit");
         const infoButton = document.getElementById("heart-model-info-button");
         const infoDialog = document.getElementById("heart-model-info-dialog");
         const closeInfoButton = document.getElementById("close-heart-model-info");
@@ -1447,6 +1628,13 @@ export function getHeartViewerState() {
             ? HEART_MODELS[viewer.selectedModelId].url
             : null,
         selectedModelId: viewer.selectedModelId,
+        cameraMode: viewer.cameraMode,
+        cameraQuaternion: viewer.camera ? viewer.camera.quaternion.toArray() : null,
+        modelPosition: viewer.modelRoot ? viewer.modelRoot.position.toArray() : null,
+        modelRotation: viewer.modelRoot ? viewer.modelRoot.rotation.toArray().slice(0, 3) : null,
+        referenceGridVisible: viewer.referenceGrid?.visible ?? false,
+        modelScaleFactor: viewer.modelScaleFactor,
+        controlsEnabled: viewer.controls?.enabled ?? null,
 
         selectedModelAmplitudeProfile: selectedModel
             ? getModelAmplitudeProfile(selectedModel)
@@ -1454,7 +1642,7 @@ export function getHeartViewerState() {
 
         morphTargetWeights,
 
-        panEnabled: viewer.controls?.enablePan ?? null,
+        panEnabled: viewer.cameraMode === "explore" || (viewer.controls?.enablePan ?? false),
 
         state: getHeartContainer()?.dataset.viewerState || "not-initialized",
 
