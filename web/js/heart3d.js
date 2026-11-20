@@ -117,7 +117,7 @@ const HEART_MODELS = {
 
 const TARGET_MODEL_SIZE = 2;
 
-const TARGET_FRAME_OCCUPANCY = 0.76;
+const TARGET_FRAME_OCCUPANCY = 0.85;
 
 const HEART_SYNC_EVENT = "ecg-heart-sync";
 
@@ -1653,5 +1653,10 @@ export function getHeartViewerState() {
 }
 
 
+
+const heartSettingsDialog = document.getElementById("heart-settings-dialog");
+document.getElementById("heart-settings-button").addEventListener("click", () => {
+    heartSettingsDialog.showModal();
+});
 
 initializeHeartViewer();
