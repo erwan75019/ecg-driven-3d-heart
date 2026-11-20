@@ -1305,9 +1305,18 @@ select optgroup {
     stroke-width: 1.8;
 }
 
+.learning-strip,
+.information-grid {
+    --information-column-gap: 16px;
+}
+
 .learning-strip {
     display: grid;
-    grid-template-columns: 1.2fr repeat(3, 1fr);
+    /* Place dividers at the middle of the gaps between the cards below. */
+    grid-template-columns:
+        minmax(0, calc((100% - var(--information-column-gap)) / 4))
+        repeat(2, minmax(0, 1fr))
+        minmax(0, calc((100% - var(--information-column-gap)) / 4));
     margin-top: 22px;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -1416,7 +1425,7 @@ span.phase-legend__t,
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
-    gap: 16px;
+    gap: var(--information-column-gap);
     margin-top: 22px;
 }
 
