@@ -1,7 +1,3 @@
-/* Experimental single-lead P/T delineation. QRS intervals delimit search
- * regions; accepted wave boundaries come from the detrended signal itself.
- * This heuristic has no clinical validation. See README for evaluation.
- */
 (function (root, factory) {
     if (typeof module === "object" && module.exports) module.exports = factory();
     else root.ECGPT = factory();

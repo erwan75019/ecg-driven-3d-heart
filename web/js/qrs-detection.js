@@ -1,8 +1,3 @@
-/* Offline Pan-Tompkins adaptation: J. Pan & W. J. Tompkins (1985),
- * doi:10.1109/TBME.1985.325532. Sampling-rate independent biquads and
- * centered integration replace the original 200 Hz integer filters/delays.
- * R peaks are detected; QRS bounds are estimated windows, not delineation.
- */
 (function (root, factory) {
     if (typeof module === "object" && module.exports) module.exports = factory();
     else root.ECGQRS = factory();
