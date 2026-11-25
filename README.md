@@ -1,6 +1,12 @@
 # ecg-driven-3d-heart
 ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web animation.
 
+## Lancement du projet
+
+1. Cloner le dépôt sur votre machine.
+2. Ouvrir le projet avec un éditeur (comme VS Code).
+3. Lancer un serveur local depuis le dossier `web/` (par exemple avec l'extension Live Server de VS Code) afin de charger correctement les fichiers JSON.
+
 ## Technologies utilisées
 - Front-end : HTML5, CSS3, JavaScript et Canvas 2D
 - Traitement et export des signaux ECG : Python et JSON
@@ -138,9 +144,7 @@ l'animation. Un battement est considéré actif lorsque son excursion robuste
 quantifiée mais non constante, le quantile 95 % des excursions de cette ligne
 de base sert de repli. Les battements actifs utilisent un poids compris entre
 0,35 et 1 ; en l'absence d'activité QRS valide, le modèle reste dans sa pose de
-référence avec un poids nul. Les anciens événements de synchronisation qui ne
-fournissent aucune métadonnée d'amplitude conservent un poids complet,
-uniquement pendant un cycle QRS réellement annoté. Cette modulation est
+référence avec un poids nul. Une métadonnée d'amplitude absente ou invalide donne également un poids nul. Cette modulation est
 uniquement éducative : l'amplitude ECG ne mesure pas directement la
 contractilité mécanique cardiaque.
 Le bouton « User guide » présente les commandes du site et le format attendu
@@ -232,9 +236,12 @@ as consecutive samples. If rows are separate recordings, export one recording
 as a single column first. Open **CSV settings** to change the signal column
 (the UI starts at **1**; the Python CLI starts at **0**), separator and header.
 The browser accepts up to **10 MB**, **100,000 samples**, and **80 < fs <= 10,000 Hz**.
-JSON annotations are preserved when provided; missing QRS are estimated by
-`web/js/qrs-detection.js`, using the same detector as Python. P/T annotations
-are not generated. The imported plot fits the raw and filtered signals;
+The signal panel displays **Local ECG** for the selected import. CSV loads
+estimate P, QRS and T from signal samples. JSON keeps supplied non-empty QRS
+and any explicit P/T arrays, including empty arrays. Missing or empty QRS
+and omitted P/T keys can be estimated. See the
+[P/T detection method, LUDB evaluation and limits](docs/pt-detection-evaluation.md).
+The imported plot fits the raw and filtered signals;
 bundled records keep at least the usual [-1.2, 1.2] vertical range, expanding
 it when needed to show all raw and filtered samples.
 
@@ -254,15 +261,10 @@ A world-space reference floor makes the camera movement visible.
 Run the focused checks without installing additional test dependencies:
 
 ```text
-node --test tests/ecg-import.test.cjs
+node --test tests/*.test.cjs
 python -B -m unittest discover -s signal-processing -p "test_*.py" -v
 ```
 
 Le site peut être hébergé sur un service statique comme GitHub Pages. Le
 chargement de Three.js depuis un CDN nécessite une connexion internet pour la
 visualisation 3D ; les enregistrements et le modèle du cœur sont dans le dépôt.
-
-## Lancement du projet
-1. Cloner le dépôt sur votre machine.
-2. Ouvrir le projet avec un éditeur (comme VS Code).
-3. Lancer un serveur local depuis le dossier `web/` (par exemple avec l'extension Live Server de VS Code) afin de charger correctement les fichiers JSON.

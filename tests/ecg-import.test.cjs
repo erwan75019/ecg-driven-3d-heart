@@ -5,6 +5,13 @@ const {execFileSync} = require('node:child_process');
 const {detectQrs} = require('../web/js/qrs-detection.js');
 const {parseCsv, inspectCsv, parseRecord, validateRecord} = require('../web/js/ecg-import.js');
 
+test('explicit empty CSV rows fail rather than shifting samples in time', () => {
+    const csv = '0,0.1\r\n,\r\n2,0.2';
+    assert.deepEqual(inspectCsv(csv), {rows: 3, columns: 2, consistentColumns: true});
+    assert.throws(() => parseCsv(csv, {column: 1}), /Row 2: column 2/);
+    assert.throws(() => parseCsv('0.1\n""\n0.2'), /Row 2: column 1/);
+});
+
 function synthetic(fs, sign = 1) {
     return Array.from({length: fs * 9}, (_, i) => {
         const t = i / fs;
@@ -57,13 +64,16 @@ test('annotated JSON preserves samples and annotations without running detection
     assert.equal(record.detection, undefined);
 });
 
-test('CSV becomes a raw ECG record with estimated QRS, not fabricated P/T waves', () => {
+test('CSV preserves samples and detects QRS/T while leaving absent P waves empty', () => {
     const raw = synthetic(500);
     const record = parseRecord(raw.join('\n'), 'synthetic.csv', {fs: 500});
     assert.deepEqual(record.ecg, raw);
     assert.equal(record.intervals.QRS.length, 8);
     assert.deepEqual(record.intervals.P, []);
-    assert.deepEqual(record.intervals.T, []);
+    assert.equal(record.intervals.T.length, 8);
+    record.intervals.T.forEach(([start, end], i) => {
+        assert.ok(start < i + 1.28 && end > i + 1.28);
+    });
     assert.equal(record.detection.estimatedQrsBounds, true);
 });
 
