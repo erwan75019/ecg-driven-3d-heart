@@ -11,7 +11,6 @@
         const rows = []; let row = [], value = "", quoted = false, closed = false;
         const finishRow = () => {
             row.push(value);
-            // Keep explicit empty fields so a missing sample cannot shorten the timeline.
             if (row.length > 1 || closed || row.some(cell => cell.trim() !== "")) rows.push(row);
             row = []; value = ""; closed = false;
             if (rows.length > MAX_SAMPLES + 1) throw new Error(`Import at most ${MAX_SAMPLES.toLocaleString("en-US")} samples.`);
@@ -97,8 +96,7 @@
                 parameters: detection.parameters, estimatedQrsBounds: true};
             estimatedPhases.push("QRS");
         }
-        // An explicit P/T array (including []) represents supplied information.
-        // Complete missing phase keys only; never infer missing beats in an array.
+
         const missingPt = ["P", "T"].filter(phase =>
             !Object.prototype.hasOwnProperty.call(source.intervals || {}, phase));
         if (missingPt.length) {

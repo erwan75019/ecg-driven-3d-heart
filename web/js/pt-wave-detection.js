@@ -49,13 +49,10 @@
         const start = Math.ceil(startTime * fs);
         const end = Math.floor(endTime * fs);
         const edge = Math.max(2, Math.round((config.baselineEdgeSeconds ?? PARAMETERS.baselineEdgeSeconds) * fs));
-        // Baseline samples and the safety margin around a detected crossing
-        // serve different purposes. Sharing 25 ms excluded otherwise valid P waves.
         const boundaryGuard = Math.max(1, Math.round(
             (config.boundaryGuardSeconds ?? PARAMETERS.baselineEdgeSeconds) * fs));
         if (end - start < 2 * edge + config.minimumWidthSeconds * fs) return null;
 
-        // The chord between the two edge medians removes local baseline drift.
         const leftLevel = median(signal.slice(start, start + edge));
         const rightLevel = median(signal.slice(end - edge + 1, end + 1));
         const values = signal.slice(start, end + 1).map((value, i) =>
@@ -85,7 +82,6 @@
         while (onset > 0 && polarity * values[onset] > threshold) onset--;
         while (offset < values.length - 1 && polarity * values[offset] > threshold) offset++;
         const width = (offset - onset) / fs;
-        // Truncated waves and narrow noise spikes are left unannotated.
         if (onset < boundaryGuard || offset >= values.length - boundaryGuard
             || width < config.minimumWidthSeconds || width > config.maximumWidthSeconds) return null;
 
