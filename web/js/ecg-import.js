@@ -1,7 +1,8 @@
 (function (root, factory) {
-    if (typeof module === "object" && module.exports) module.exports = factory(require("./qrs-detection.js"));
-    else root.ECGLocalImport = factory(root.ECGQRS);
-})(typeof globalThis !== "undefined" ? globalThis : this, function (detector) {
+    if (typeof module === "object" && module.exports) {
+        module.exports = factory(require("./qrs-detection.js"), require("./pt-wave-detection.js"));
+    } else root.ECGLocalImport = factory(root.ECGQRS, root.ECGPT);
+})(typeof globalThis !== "undefined" ? globalThis : this, function (detector, ptDetector) {
     "use strict";
     const MAX_SAMPLES = 100000;
 
@@ -10,7 +11,8 @@
         const rows = []; let row = [], value = "", quoted = false, closed = false;
         const finishRow = () => {
             row.push(value);
-            if (row.some(cell => cell.trim() !== "")) rows.push(row);
+            // Keep explicit empty fields so a missing sample cannot shorten the timeline.
+            if (row.length > 1 || closed || row.some(cell => cell.trim() !== "")) rows.push(row);
             row = []; value = ""; closed = false;
             if (rows.length > MAX_SAMPLES + 1) throw new Error(`Import at most ${MAX_SAMPLES.toLocaleString("en-US")} samples.`);
         };
@@ -82,16 +84,36 @@
     function parseRecord(text, filename, options = {}) {
         const json = /\.json$/i.test(filename);
         if (!json && !/\.csv$/i.test(filename)) throw new Error("Choose a .csv or .json file.");
-        const record = validateRecord(json ? JSON.parse(text.replace(/^\uFEFF/, "")) : {
+        const source = json ? JSON.parse(text.replace(/^\uFEFF/, "")) : {
             label: filename.replace(/\.csv$/i, ""), fs: options.fs,
             ecg: parseCsv(text, options), intervals: {}
-        });
+        };
+        const record = validateRecord(source);
+        const estimatedPhases = [];
         if (!record.intervals.QRS.length) {
             const detection = detector.detectQrs(record.ecg, record.fs);
             record.intervals.QRS = detection.intervals.QRS;
             record.detection = {method: detection.method, rPeaks: detection.rPeaks,
                 parameters: detection.parameters, estimatedQrsBounds: true};
+            estimatedPhases.push("QRS");
         }
+        // An explicit P/T array (including []) represents supplied information.
+        // Complete missing phase keys only; never infer missing beats in an array.
+        const missingPt = ["P", "T"].filter(phase =>
+            !Object.prototype.hasOwnProperty.call(source.intervals || {}, phase));
+        if (missingPt.length) {
+            const pt = ptDetector.detectPt(record.ecg, record.fs, record.intervals.QRS);
+            const occupied = Object.values(record.intervals).flat();
+            for (const phase of missingPt) {
+                record.intervals[phase] = pt.intervals[phase].filter(pair =>
+                    !occupied.some(([start, end]) => pair[0] < end && pair[1] > start));
+                occupied.push(...record.intervals[phase]);
+            }
+            record.detection = {...record.detection,
+                pt: {method: pt.method, parameters: pt.parameters, estimatedPhases: missingPt}};
+            estimatedPhases.push(...missingPt);
+        }
+        if (estimatedPhases.length) record.detection.estimatedPhases = estimatedPhases;
         return record;
     }
     return {parseCsv, inspectCsv, validateRecord, parseRecord, MAX_SAMPLES};

@@ -285,7 +285,7 @@
 
                         <span aria-hidden="true"></span>
 
-                        LUDB Data
+                        <div id="ecg-source-label">ECG</div>
 
                     </div>
 
@@ -621,7 +621,7 @@
 
                     <li>Educational visualization, not a medical diagnostic tool.</li>
 
-                    <li>ECG intervals come from the dataset annotations.</li>
+                    <li>Bundled LUDB records use dataset annotations. Local imports can show estimated intervals.</li>
 
                     <li>The interactive 3D heart can be rotated and zoomed for inspection.</li>
 
@@ -647,7 +647,7 @@
                 <label class="field-group" for="ecg-import-delimiter"><span>Separator</span><select id="ecg-import-delimiter"><option value=",">Comma (,)</option><option value=";">Semicolon (;)</option><option value="tab">Tab</option></select></label>
                 <label class="import-header-option"><input id="ecg-import-header" type="checkbox"> First row is a header</label></div></details>
             </div>
-            <p class="import-note">Missing QRS annotations are estimated with an adapted Pan–Tompkins detector. P and T waves are not detected. Check the result before interpretation. Up to 100,000 samples per file.</p>
+            <p class="import-note">QRS use adapted Pan–Tompkins. Omitted P/T phases are estimated from signal morphology when identifiable. These experimental estimates require review; ambiguous waves may remain unannotated. Supplied P/T arrays in JSON, including empty arrays, are preserved. Up to 100,000 samples per file.</p>
             <p id="ecg-import-error" class="import-error" role="alert" hidden></p>
             <button id="submit-ecg-import" class="control-button control-button--primary" type="submit">Load ECG</button>
         </form>
@@ -787,13 +787,13 @@
                     <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
                     <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
                 </ol>
-                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline, while filtered QRS amplitude above the local baseline noise modulates the visual strength of each beat. Without valid QRS activity the model remains in its reference pose. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
+                <p class="guide-note">The shaded P, QRS and T regions come from supplied annotations or experimental estimates for imported signals. The selected animated model follows the ECG timeline, while filtered QRS amplitude above the local baseline noise modulates the visual strength of each beat. Without valid QRS activity the model remains in its reference pose. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
             </section>
             <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
                 <p class="eyebrow">Data workflow</p>
                 <h3 id="guide-data-title">Add a new ECG recording</h3>
                 <p class="guide-development-notice"><strong>Universal ECG import:</strong> Import a CSV or JSON file directly from your device.</p>
-                <p class="guide-note">Use Import ECG for a local file: choose the sampling rate, signal column, separator and header setting for CSV. JSON files can include existing annotations. Missing QRS are estimated; P and T are not detected. Local imports disappear when the page is reloaded. The steps below describe adding records permanently to the bundled dataset.</p>
+                <p class="guide-note">Use Import ECG for a local file: choose the sampling rate, signal column, separator and header setting for CSV. JSON files can include existing annotations. Missing QRS are estimated. Omitted P/T keys are completed experimentally when the signal is identifiable; supplied P/T arrays, including empty arrays, are preserved. Local imports disappear when the page is reloaded. The steps below describe adding records permanently to the bundled dataset.</p>
                 <ol class="guide-steps">
                     <li><strong>Prepare the signal.</strong> Use a single, evenly sampled ECG channel and keep its sampling rate in Hz. The current 0.5–40 Hz filter needs a sampling rate above 80 Hz and more than 27 samples.</li>
                     <li><strong>Annotate the waves.</strong> Provide P, QRS and T intervals as start/end times in seconds, measured from the beginning of the recording.</li>
@@ -816,7 +816,7 @@
 }</code></pre>
                     <p>See the <a href="data/ludb/records/record-1.json" target="_blank" rel="noopener noreferrer">reference ECG record</a> for a complete example in the format used by the application.</p>
                 </details>
-                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data; it is not a general importer for other dataset formats. Convert other datasets to the same JSON structure first, and check their usage terms and privacy requirements. The Import ECG button reads CSV and JSON files locally; it does not upload your data. Missing QRS annotations can be estimated; P and T annotations are not generated.</p>
+                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data. Convert other datasets to the same JSON structure before registering them, and check their usage terms and privacy requirements. The Import ECG button reads CSV and JSON files on your device.</p>
             </section>
             <section id="guide-page-credits" class="guide-page" aria-labelledby="guide-credits-title" hidden>
                 <p class="eyebrow">Attribution</p>
@@ -861,8 +861,9 @@
     </script>
 
     <script src="js/qrs-detection.js?v=20261119"></script>
-    <script src="js/ecg-import.js?v=20261119-csv-preview"></script>
-    <script src="js/main.js?v=20261119-playback-buttons"></script>
+    <script src="js/pt-wave-detection.js?v=20261125-p2"></script>
+    <script src="js/ecg-import.js?v=20261125-csv-validation"></script>
+    <script src="js/main.js?v=20261125-ecg-source"></script>
 
     <script type="module" src="js/heart3d.js?v=20261121-heart-view"></script>
 

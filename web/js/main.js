@@ -24,6 +24,7 @@ const importForm = document.getElementById("import-ecg-form");
 const importFileInput = document.getElementById("ecg-import-file");
 const importError = document.getElementById("ecg-import-error");
 const importStatus = document.getElementById("ecg-import-status");
+const ecgSourceLabel = document.getElementById("ecg-source-label");
 const localRecords = new Map();
 let localRecordCount = 0;
 let recordLoadRequestId = 0;
@@ -1740,7 +1741,7 @@ function generateReportPreview(record) {
             <table>
                 <tbody>
                     <tr><th scope="row">Sampling rate</th><td>${record.fs} Hz</td></tr>
-                    ${record.detection ? '<tr><th scope="row">QRS annotations</th><td>Adapted Pan-Tompkins detector; estimated R-centered windows. P/T not detected.</td></tr>' : ''}
+                    ${record.detection ? `<tr><th scope="row">Annotations</th><td>${describeAnnotations(record)}. Automatically estimated intervals are experimental and require review.</td></tr>` : ''}
                     <tr><th scope="row">Number of samples</th><td>${record.ecg.length}</td></tr>
                     <tr><th scope="row">Butterworth filter order</th><td>${FILTER_ORDER}</td></tr>
                     <tr><th scope="row">Pass band</th><td>${FILTER_LOW_HZ}–${FILTER_HIGH_HZ} Hz</td></tr>
@@ -2059,6 +2060,17 @@ async function fetchJson(path) {
 
 
 
+function describeAnnotations(record) {
+    const detection = record.detection;
+    const estimated = Array.isArray(detection?.estimatedPhases)
+        ? detection.estimatedPhases : [];
+    return ["P", "QRS", "T"].map(phase => {
+        const isEstimated = estimated.includes(phase)
+            || (phase === "QRS" && detection?.estimatedQrsBounds === true);
+        return `${record.intervals[phase].length} ${phase} ${isEstimated ? "estimated" : "provided"}`;
+    }).join(", ");
+}
+
 function activateRecord(record, isLocal = false) {
     if (!Array.isArray(record.ecg) || !record.ecg.every(Number.isFinite)
         || !Number.isFinite(record.fs) || record.fs <= 0) {
@@ -2085,12 +2097,12 @@ function activateRecord(record, isLocal = false) {
     hoveredTime = null;
     isScrubbing = false;
     loadError = null;
+    ecgSourceLabel.textContent = isLocal ? "Local ECG" : "LUDB Data";
     importStatus.hidden = !isLocal;
     if (isLocal) {
-        const count = record.intervals.QRS.length;
-        importStatus.textContent = record.detection
-            ? `Local ECG: ${count} estimated QRS. P/T waves are not automatically detected. Check the result; data is kept only for this session.`
-            : `Local ECG: ${count} provided QRS annotations. Data is kept only for this session.`;
+        importStatus.textContent = `Local ECG: ${describeAnnotations(record)}. `
+            + (record.detection ? "Automatic estimates are experimental; review the intervals. " : "")
+            + "Data is kept only for this session.";
     }
 }
 
@@ -2104,6 +2116,8 @@ async function loadRecord(recordId) {
     showingFilteredSignal = false;
     playbackDuration = 0;
     resetViewport();
+    ecgSourceLabel.textContent = "ECG";
+    importStatus.hidden = true;
 
     loadError = null;
     isLoading = true;
