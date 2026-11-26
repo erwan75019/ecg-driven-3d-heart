@@ -1,6 +1,12 @@
 # ecg-driven-3d-heart
 ECG-driven 3D heart visualization for cardiac cycle analysis and interactive web animation.
 
+## Lancement du projet
+
+1. Cloner le dépôt sur votre machine.
+2. Ouvrir le projet avec un éditeur (comme VS Code).
+3. Lancer un serveur local depuis le dossier `web/` (par exemple avec l'extension Live Server de VS Code) afin de charger correctement les fichiers JSON.
+
 ## Technologies utilisées
 - Front-end : HTML5, CSS3, JavaScript et Canvas 2D
 - Traitement et export des signaux ECG : Python et JSON
@@ -138,9 +144,7 @@ l'animation. Un battement est considéré actif lorsque son excursion robuste
 quantifiée mais non constante, le quantile 95 % des excursions de cette ligne
 de base sert de repli. Les battements actifs utilisent un poids compris entre
 0,35 et 1 ; en l'absence d'activité QRS valide, le modèle reste dans sa pose de
-référence avec un poids nul. Les anciens événements de synchronisation qui ne
-fournissent aucune métadonnée d'amplitude conservent un poids complet,
-uniquement pendant un cycle QRS réellement annoté. Cette modulation est
+référence avec un poids nul. Une métadonnée d'amplitude absente ou invalide donne également un poids nul. Cette modulation est
 uniquement éducative : l'amplitude ECG ne mesure pas directement la
 contractilité mécanique cardiaque.
 Le bouton « User guide » présente les commandes du site et le format attendu
@@ -175,15 +179,31 @@ identifiant après les 200 enregistrements LUDB existants :
 python signal-processing/convert_ecg_csv.py recordings/patient-01.csv web/data/ludb/records/record-201.json --fs 500 --label "Patient 01" --column 1 --skip-header
 ```
 
-Le JSON est généré au chemin indiqué et contient `label`, `fs`, `ecg` et
-`intervals`. Sans `--annotations`, les intervalles P, QRS et T sont vides ; le
-convertisseur ne détecte ni ne fabrique d'annotations. Pour conserver des
-annotations existantes, fournissez un fichier JSON contenant directement les
-intervalles (ou un objet avec une clé `intervals`) :
+The output contains `label`, `fs`, the original raw `ecg` samples and
+`intervals`. By default, P/QRS/T annotations remain empty. To preserve existing
+annotations, pass `--annotations`:
 
 ```text
 python signal-processing/convert_ecg_csv.py recordings/patient-01.csv web/data/ludb/records/record-201.json --fs 500 --column 1 --skip-header --annotations recordings/patient-01-annotations.json
 ```
+
+To estimate QRS annotations instead, use `--detect-qrs`:
+
+```text
+python signal-processing/convert_ecg_csv.py recordings/patient-01.csv web/data/ludb/records/record-201.json --fs 500 --column 1 --skip-header --detect-qrs
+```
+
+`--detect-qrs` and `--annotations` cannot be combined. The detector in
+`signal-processing/qrs_detection.py` is an offline adaptation of
+[Pan and Tompkins (1985)](https://doi.org/10.1109/TBME.1985.325532): 5-15 Hz
+filtering, differentiation, squaring, 150 ms integration, adaptive signal/noise
+thresholds, a 200 ms refractory period, T-wave discrimination and RR searchback.
+Floating-point filters and centered integration replace the original 200 Hz
+integer filters. It is not a bit-for-bit implementation of the original.
+The exported `detection` metadata records the method and detected R-peak times.
+QRS bounds are estimated windows from 60 ms before to 80 ms after each peak;
+P and T intervals remain empty. Review the estimates: weak, noisy or atypical
+beats may be missed or falsely detected. This is not clinical validation.
 
 Exemple de contenu pour `patient-01-annotations.json` (les temps sont en
 secondes) :
@@ -204,11 +224,47 @@ inscrivez cet identifiant et son libellé dans `web/data/ludb/index.json`. Le
 script ne modifie pas l'index. N'utilisez pas ces exemples avec des données
 identifiantes sans vérifier les règles de confidentialité applicables.
 
+### Local browser import and viewer controls
+
+Use **Import ECG** to select a CSV or a JSON record. Processing stays in the
+browser: there is no upload, backend or change to the repository's data index.
+Imported records remain selectable with previous/next navigation for the
+current page session only. Reloading removes them.
+For CSV, enter the sampling rate from the source (no rate is assumed).
+The preview shows table dimensions; one selected column is read top to bottom
+as consecutive samples. If rows are separate recordings, export one recording
+as a single column first. Open **CSV settings** to change the signal column
+(the UI starts at **1**; the Python CLI starts at **0**), separator and header.
+The browser accepts up to **10 MB**, **100,000 samples**, and **80 < fs <= 10,000 Hz**.
+The signal panel displays **Local ECG** for the selected import. CSV loads
+estimate P, QRS and T from signal samples. JSON keeps supplied non-empty QRS
+and any explicit P/T arrays, including empty arrays. Missing or empty QRS
+and omitted P/T keys can be estimated. See the
+[P/T detection method, LUDB evaluation and limits](docs/pt-detection-evaluation.md).
+The imported plot fits the raw and filtered signals;
+bundled records keep at least the usual [-1.2, 1.2] vertical range, expanding
+it when needed to show all raw and filtered samples.
+
+The transport bar keeps separate **Restart**, **Play** and **Pause** buttons on one row. **More options**
+reveals playback speed, filtered/raw ECG, the report and the user guide.
+The ECG plot keeps a bounded height independently of the 3D viewer.
+
+The model-size slider runs from **0.5x to 4x**. The heart remains at its
+scene position: camera input does not change its position or rotation.
+**Orbit around heart** moves the camera around the model. **Free camera** looks
+independently from its current position: drag to turn the view, right-drag
+to pan, and scroll to move forward/back. On touch devices, one finger looks
+around and two fingers pan/pinch. Focus the viewer for W/S forward/back,
+A/D sideways and Q/E down/up. **Reset view** returns the camera to the heart.
+A world-space reference floor makes the camera movement visible.
+
+Run the focused checks without installing additional test dependencies:
+
+```text
+node --test tests/*.test.cjs
+python -B -m unittest discover -s signal-processing -p "test_*.py" -v
+```
+
 Le site peut être hébergé sur un service statique comme GitHub Pages. Le
 chargement de Three.js depuis un CDN nécessite une connexion internet pour la
 visualisation 3D ; les enregistrements et le modèle du cœur sont dans le dépôt.
-
-## Lancement du projet
-1. Cloner le dépôt sur votre machine.
-2. Ouvrir le projet avec un éditeur (comme VS Code).
-3. Lancer un serveur local depuis le dossier `web/` (par exemple avec l'extension Live Server de VS Code) afin de charger correctement les fichiers JSON.

@@ -122,6 +122,7 @@ def convert_csv(
     skip_header: bool = False,
     annotations_path: Path | None = None,
     overwrite: bool = False,
+    detect_qrs_automatically: bool = False,
 ) -> None:
     if not math.isfinite(sampling_frequency) or sampling_frequency <= MINIMUM_SAMPLING_FREQUENCY:
         raise ValueError(
@@ -134,6 +135,8 @@ def convert_csv(
         raise ValueError("Delimiter must be exactly one character.")
     if not label.strip():
         raise ValueError("Label must not be empty.")
+    if detect_qrs_automatically and annotations_path is not None:
+        raise ValueError("Choose either existing annotations or --detect-qrs, not both.")
     if input_path.resolve() == output_path.resolve():
         raise ValueError("Input and output paths must be different.")
     if annotations_path is not None and (
@@ -150,6 +153,14 @@ def convert_csv(
         "ecg": signal,
         "intervals": intervals,
     }
+    if detect_qrs_automatically:
+        from qrs_detection import detect_qrs
+        detection = detect_qrs(signal, sampling_frequency)
+        record["intervals"] = detection["intervals"]
+        record["detection"] = {
+            "method": detection["method"], "rPeaks": detection["rPeaks"],
+            "parameters": detection["parameters"], "estimatedQrsBounds": True,
+        }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "w" if overwrite else "x"
@@ -162,7 +173,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Convert a single-channel CSV ECG into the JSON format used by the "
-            "static website. Existing annotations can be supplied separately."
+            "static website. Supply annotations or estimate QRS with --detect-qrs."
         )
     )
     parser.add_argument("input_csv", type=Path, help="Input CSV file.")
@@ -202,6 +213,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--detect-qrs",
+        action="store_true",
+        help="Estimate QRS using an offline Pan-Tompkins adaptation. P and T remain empty.",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace the output file if it already exists.",
@@ -224,6 +240,7 @@ def main() -> int:
             skip_header=args.skip_header,
             annotations_path=args.annotations,
             overwrite=args.overwrite,
+            detect_qrs_automatically=args.detect_qrs,
         )
     except (OSError, UnicodeError, csv.Error, json.JSONDecodeError, ValueError) as error:
         parser.error(str(error))

@@ -7,6 +7,8 @@ const ecgContext = ecgCanvas.getContext("2d");
 const playButton = document.getElementById("play-button");
 
 const pauseButton = document.getElementById("pause-button");
+const signalOptionsButton = document.getElementById("signal-options-button");
+const signalOptions = document.getElementById("signal-options");
 
 const restartButton = document.getElementById("restart-button");
 const zoomOutButton = document.getElementById("ecg-zoom-out-button");
@@ -14,6 +16,20 @@ const resetZoomButton = document.getElementById("ecg-reset-zoom-button");
 const zoomInButton = document.getElementById("ecg-zoom-in-button");
 const recordSelect = document.getElementById("record-select");
 const speedSelect = document.getElementById("speed-select");
+const previousRecordButton = document.getElementById("previous-record-button");
+const nextRecordButton = document.getElementById("next-record-button");
+const importEcgButton = document.getElementById("import-ecg-button");
+const importDialog = document.getElementById("import-ecg-dialog");
+const importForm = document.getElementById("import-ecg-form");
+const importFileInput = document.getElementById("ecg-import-file");
+const importError = document.getElementById("ecg-import-error");
+const importStatus = document.getElementById("ecg-import-status");
+const ecgSourceLabel = document.getElementById("ecg-source-label");
+const localRecords = new Map();
+let localRecordCount = 0;
+let recordLoadRequestId = 0;
+let isImporting = false;
+
 const switchSignalButton = document.getElementById("switch-signal-button");
 const viewReportButton = document.getElementById("view-report-button");
 const reportDialog = document.getElementById("report-dialog");
@@ -64,9 +80,9 @@ let qrsAmplitudeProfile = [];
 let showingFilteredSignal = false;
 let playbackDuration = 0;
 
-const signalMinimum = ECG_Y_MINIMUM;
+let signalMinimum = ECG_Y_MINIMUM;
 
-const signalMaximum = ECG_Y_MAXIMUM;
+let signalMaximum = ECG_Y_MAXIMUM;
 
 let currentTime = 0;
 
@@ -392,6 +408,10 @@ function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
 
 
 
+    context.save();
+    context.beginPath();
+    context.rect(plot.left, plot.top, plot.width, plot.height);
+    context.clip();
     context.strokeStyle = color;
 
     context.lineWidth = lineWidth;
@@ -455,6 +475,7 @@ function traceSignal(context, plot, color, lineWidth, lastSampleIndex) {
 
 
     context.stroke();
+    context.restore();
 
 }
 
@@ -735,9 +756,12 @@ function updateControls() {
 
 
     recordSelect.disabled = isLoading;
+    previousRecordButton.disabled = isLoading || recordSelect.selectedIndex <= 0;
+    nextRecordButton.disabled = isLoading || recordSelect.selectedIndex < 0
+        || recordSelect.selectedIndex >= recordSelect.options.length - 1;
+    importEcgButton.disabled = isLoading || isImporting;
 
     playButton.disabled = recordUnavailable || isPlaying;
-
     pauseButton.disabled = recordUnavailable || !isPlaying;
 
     restartButton.disabled = recordUnavailable;
@@ -1166,7 +1190,7 @@ function filterEcg(signal, samplingRate) {
     for (let index = padLength; index > 0; index -= 1) {
         extended.push(2 * signal[0] - signal[index]);
     }
-    extended.push(...signal);
+    for (const sample of signal) extended.push(sample);
     for (let index = 1; index <= padLength; index += 1) {
         extended.push(2 * signal[signal.length - 1] - signal[signal.length - 1 - index]);
     }
@@ -1717,6 +1741,7 @@ function generateReportPreview(record) {
             <table>
                 <tbody>
                     <tr><th scope="row">Sampling rate</th><td>${record.fs} Hz</td></tr>
+                    ${record.detection ? `<tr><th scope="row">Annotations</th><td>${describeAnnotations(record)}. Automatically estimated intervals are experimental and require review.</td></tr>` : ''}
                     <tr><th scope="row">Number of samples</th><td>${record.ecg.length}</td></tr>
                     <tr><th scope="row">Butterworth filter order</th><td>${FILTER_ORDER}</td></tr>
                     <tr><th scope="row">Pass band</th><td>${FILTER_LOW_HZ}–${FILTER_HIGH_HZ} Hz</td></tr>
@@ -2035,75 +2060,169 @@ async function fetchJson(path) {
 
 
 
-async function loadRecord(recordId) {
+function describeAnnotations(record) {
+    const detection = record.detection;
+    const estimated = Array.isArray(detection?.estimatedPhases)
+        ? detection.estimatedPhases : [];
+    return ["P", "QRS", "T"].map(phase => {
+        const isEstimated = estimated.includes(phase)
+            || (phase === "QRS" && detection?.estimatedQrsBounds === true);
+        return `${record.intervals[phase].length} ${phase} ${isEstimated ? "estimated" : "provided"}`;
+    }).join(", ");
+}
 
+function activateRecord(record, isLocal = false) {
+    if (!Array.isArray(record.ecg) || !record.ecg.every(Number.isFinite)
+        || !Number.isFinite(record.fs) || record.fs <= 0) {
+        throw new Error("Invalid ECG format");
+    }
+    const nextFiltered = filterEcg(record.ecg, record.fs);
+    const nextProfile = buildQrsAmplitudeProfile(record, nextFiltered);
+    const range = calculateSignalRange(record.ecg.concat(nextFiltered));
+    if (!isLocal) {
+        // Keep the usual scale, expanding it only when a record would be clipped.
+        range.minimum = Math.min(ECG_Y_MINIMUM, range.minimum);
+        range.maximum = Math.max(ECG_Y_MAXIMUM, range.maximum);
+    }
     stopAnimation();
-
+    currentRecord = record;
+    filteredSignal = nextFiltered;
+    qrsAmplitudeProfile = nextProfile;
+    showingFilteredSignal = false;
+    playbackDuration = record.ecg.length / record.fs;
+    resetViewport();
+    signalMinimum = range.minimum;
+    signalMaximum = range.maximum;
     currentTime = 0;
+    hoveredTime = null;
+    isScrubbing = false;
+    loadError = null;
+    ecgSourceLabel.textContent = isLocal ? "Local ECG" : "LUDB Data";
+    importStatus.hidden = !isLocal;
+    if (isLocal) {
+        importStatus.textContent = `Local ECG: ${describeAnnotations(record)}. `
+            + (record.detection ? "Automatic estimates are experimental; review the intervals. " : "")
+            + "Data is kept only for this session.";
+    }
+}
 
+async function loadRecord(recordId) {
+    const requestId = ++recordLoadRequestId;
+    stopAnimation();
+    currentTime = 0;
     currentRecord = null;
     filteredSignal = null;
     qrsAmplitudeProfile = [];
     showingFilteredSignal = false;
     playbackDuration = 0;
     resetViewport();
+    ecgSourceLabel.textContent = "ECG";
+    importStatus.hidden = true;
 
     loadError = null;
-
     isLoading = true;
-
     updateInterface();
-
-
-
     try {
-
-        const record = await fetchJson(`data/ludb/records/record-${recordId}.json`);
-
-
-
-        if (!Array.isArray(record.ecg) || !Number.isFinite(record.fs) || record.fs <= 0) {
-
-            throw new Error("Invalid ECG format");
-
-        }
-
-        const recordFilteredSignal = filterEcg(record.ecg, record.fs);
-        const recordQrsAmplitudeProfile = buildQrsAmplitudeProfile(
-            record,
-            recordFilteredSignal
-        );
-        currentRecord = record;
-        filteredSignal = recordFilteredSignal;
-        qrsAmplitudeProfile = recordQrsAmplitudeProfile;
-        playbackDuration = record.ecg.length / record.fs;
-        resetViewport();
-
-        ecgCanvas.setAttribute(
-
-            "aria-label",
-
-            `Real ECG signal for ${record.label}, duration ${playbackDuration.toFixed(1)} seconds.`
-
-        );
-
+        const local = localRecords.get(String(recordId));
+        const record = local || await fetchJson(`data/ludb/records/record-${recordId}.json`);
+        if (requestId !== recordLoadRequestId) return;
+        activateRecord(record, Boolean(local));
     } catch (error) {
-
-        loadError = `Unable to load Record ${recordId}.`;
-
+        if (requestId !== recordLoadRequestId) return;
+        loadError = `Unable to load record ${recordId}.`;
         console.error(error);
-
     } finally {
-
-        isLoading = false;
-
-        updateInterface();
-
+        if (requestId === recordLoadRequestId) {
+            isLoading = false;
+            updateInterface();
+        }
     }
-
 }
 
+function stepRecord(direction) {
+    if (isLoading) return;
+    const index = recordSelect.selectedIndex + direction;
+    if (index < 0 || index >= recordSelect.options.length) return;
+    recordSelect.selectedIndex = index;
+    loadRecord(recordSelect.value);
+}
 
+let importPreviewId = 0;
+async function updateImportFields() {
+    const previewId = ++importPreviewId;
+    const json = /\.json$/i.test(importFileInput.files[0]?.name || "");
+    const options = document.getElementById("csv-import-options");
+    options.hidden = json;
+    options.querySelectorAll("input, select").forEach(input => { input.disabled = json; });
+    importError.hidden = true;
+    const summary = document.getElementById("csv-file-summary");
+    summary.hidden = true;
+    const file = importFileInput.files[0];
+    if (json || !file || file.size > 10 * 1024 * 1024) return;
+    try {
+        const separator = document.getElementById("ecg-import-delimiter").value;
+        const info = ECGLocalImport.inspectCsv(await file.text(), {
+            delimiter: separator === "tab" ? "\t" : separator,
+            skipHeader: document.getElementById("ecg-import-header").checked
+        });
+        if (previewId !== importPreviewId) return;
+        summary.textContent = `${info.rows.toLocaleString("en-US")} rows × ${info.columns} columns${info.consistentColumns ? "" : " (uneven rows)"}. One column is read from top to bottom as consecutive samples. `
+            + (info.columns > 16 ? "If each row is a separate recording, export one recording as a single column first. " : "")
+            + "Use the sampling rate from the source; it cannot be inferred from these values.";
+        summary.hidden = false;
+    } catch (error) {
+        if (previewId !== importPreviewId) return;
+        summary.textContent = error.message;
+        summary.hidden = false;
+    }
+}
+
+async function importLocalEcg(event) {
+    event.preventDefault();
+    if (isImporting) return;
+    const file = importFileInput.files[0];
+    if (!file) return;
+    const submit = document.getElementById("submit-ecg-import");
+    isImporting = true;
+    submit.disabled = true;
+    submit.textContent = "Loading...";
+    importError.hidden = true;
+    updateControls();
+    try {
+        if (file.size > 10 * 1024 * 1024) throw new Error("Choose a file smaller than 10 MB.");
+        const text = await file.text();
+        if (!importDialog.open) return;
+        const separator = document.getElementById("ecg-import-delimiter").value;
+        const record = ECGLocalImport.parseRecord(text, file.name, {
+            fs: Number(document.getElementById("ecg-import-fs").value),
+            column: Number(document.getElementById("ecg-import-column").value) - 1,
+            delimiter: separator === "tab" ? "\t" : separator,
+            skipHeader: document.getElementById("ecg-import-header").checked
+        });
+        // Validate/filter before changing the selection, so failed imports keep the current ECG.
+        activateRecord(record, true);
+        recordLoadRequestId++;
+        isLoading = false;
+        const id = `local-${++localRecordCount}`;
+        localRecords.set(id, record);
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = `${record.label} (local)`;
+        recordSelect.appendChild(option);
+        recordSelect.value = id;
+        importDialog.close();
+        updateInterface();
+    } catch (error) {
+        importError.textContent = error instanceof SyntaxError
+            ? "The JSON file is not valid JSON." : error.message;
+        importError.hidden = false;
+    } finally {
+        isImporting = false;
+        submit.disabled = false;
+        submit.textContent = "Load ECG";
+        updateControls();
+    }
+}
 
 async function initializeRecords() {
 
@@ -2156,6 +2275,7 @@ async function initializeRecords() {
         isLoading = false;
 
         loadError = "Unable to load the LUDB index.";
+        recordSelect.replaceChildren();
 
         console.error(error);
 
@@ -2167,9 +2287,22 @@ async function initializeRecords() {
 
 
 
-playButton.addEventListener("click", playPlayback);
+previousRecordButton.addEventListener("click", () => stepRecord(-1));
+nextRecordButton.addEventListener("click", () => stepRecord(1));
+importEcgButton.addEventListener("click", () => { updateImportFields(); importDialog.showModal(); });
+document.getElementById("close-import-ecg").addEventListener("click", () => importDialog.close());
+importDialog.addEventListener("click", event => { if (event.target === importDialog) importDialog.close(); });
+importFileInput.addEventListener("change", updateImportFields);
+document.getElementById("ecg-import-delimiter").addEventListener("change", updateImportFields);
+document.getElementById("ecg-import-header").addEventListener("change", updateImportFields);
+importForm.addEventListener("submit", importLocalEcg);
 
+playButton.addEventListener("click", playPlayback);
 pauseButton.addEventListener("click", pausePlayback);
+signalOptionsButton.addEventListener("click", () => {
+    signalOptions.hidden = !signalOptions.hidden;
+    signalOptionsButton.setAttribute("aria-expanded", String(!signalOptions.hidden));
+});
 
 restartButton.addEventListener("click", restartPlayback);
 switchSignalButton.addEventListener("click", () => {

@@ -24,7 +24,7 @@
 
 
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261121-heart-view">
 
 </head>
 
@@ -119,7 +119,7 @@
 
                 <p class="eyebrow">From ECG signal to cardiac motion</p>
 
-                <h2 id="intro-title">Observe the electrical activity,<br>understand the motion.</h2>
+                <h2 id="intro-title">Observe the electrical activity,<br> understand the motion.</h2>
 
                 <p>
 
@@ -181,6 +181,86 @@
 
         <div class="workspace-grid">
 
+            <aside class="side-column" aria-label="Synchronized information">
+
+                <section id="heart-section" class="panel heart-panel" aria-labelledby="heart-title">
+
+                    <div class="panel-header panel-header--compact">
+
+                        <div class="panel-title-group">
+
+                            <span class="section-number">02</span>
+
+                            <div>
+
+                                <p class="eyebrow">Visualization</p>
+
+                                <h2 id="heart-title">3D Heart</h2>
+
+                            </div>
+
+                        </div>
+
+                        <div class="heart-panel-actions">
+                            <button id="heart-settings-button" class="control-button control-button--secondary heart-model-info-button" type="button" aria-haspopup="dialog" aria-controls="heart-settings-dialog">Settings</button>
+                            <button
+                                id="heart-model-info-button"
+                                class="control-button control-button--secondary heart-model-info-button"
+                                type="button"
+                                aria-haspopup="dialog"
+                                aria-controls="heart-model-info-dialog"
+                            >
+                                <span class="heart-model-info-button__icon" aria-hidden="true">i</span>
+                                Info
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div id="heart-container" aria-label="Interactive three-dimensional heart viewer"></div>
+
+
+
+                    <div class="phase-readout">
+
+                        <div>
+
+                            <span>Current phase</span>
+
+                            <p id="phase-display" aria-live="polite">Rest</p>
+
+                        </div>
+
+                        <span id="phase-code">—</span>
+
+                    </div>
+
+
+
+                    <p id="phase-description" class="phase-description">
+
+                        Time outside the annotated P, QRS and T intervals.
+
+                    </p>
+
+
+
+                    <div class="phase-legend" aria-label="ECG cycle landmarks">
+
+                        <span class="phase-legend__p">P</span>
+
+                        <span class="phase-legend__qrs">QRS</span>
+
+                        <span class="phase-legend__t">T</span>
+
+                    </div>
+
+                </section>
+
+
+
+            </aside>
+
             <section id="ecg-section" class="panel signal-panel" aria-labelledby="ecg-title">
 
                 <div class="panel-header">
@@ -205,7 +285,7 @@
 
                         <span aria-hidden="true"></span>
 
-                        LUDB Data
+                        <div id="ecg-source-label">ECG</div>
 
                     </div>
 
@@ -261,60 +341,28 @@
                 </div>
                 <div class="transport-bar">
 
-                    <label class="field-group" for="record-select">
-
-                        <span>Record <output id="record-sampling-frequency" class="sampling-frequency" aria-live="polite">— Hz</output></span>
-
-                        <span class="select-wrapper">
-
-                            <select id="record-select" name="record">
-
-                                <option>Loading…</option>
-
-                            </select>
-
-                        </span>
-
-                    </label>
-
-
-
-                    <label class="field-group speed-control" for="speed-select">
-
-                        <span>Speed</span>
-
-                        <span class="select-wrapper">
-
-                            <select id="speed-select" name="speed">
-
-                                <option value="0.1">0.1×</option>
-
-                                <option value="0.5">0.5×</option>
-
-                                <option value="1" selected>1×</option>
-
-                                <option value="1.5">1.5×</option>
-
-                                <option value="2">2×</option>
-
-                            </select>
-
-                        </span>
-
-                    </label>
+                    <div class="field-group record-field">
+                        <label for="record-select">Record <output id="record-sampling-frequency" class="sampling-frequency" aria-live="polite">— Hz</output></label>
+                        <div class="record-picker" role="group" aria-label="Choose a record">
+                            <button id="previous-record-button" class="record-step" type="button" aria-label="Previous record" title="Previous record" disabled>◀</button>
+                            <span class="select-wrapper">
+                                <select id="record-select" name="record"><option>Loading…</option></select>
+                            </span>
+                            <button id="next-record-button" class="record-step" type="button" aria-label="Next record" title="Next record" disabled>▶</button>
+                        </div>
+                    </div>
 
 
 
                     <div class="playback-controls" aria-label="Playback controls">
 
-                        <button id="restart-button" class="control-button control-button--secondary" type="button" disabled>
+                        <button id="restart-button" class="control-button control-button--secondary" type="button" aria-label="Restart playback" title="Restart playback" disabled>
 
                             <svg viewBox="0 0 20 20" aria-hidden="true">
 
                                 <path d="M4.5 6.5V2.8M4.5 2.8H8M4.5 2.8a7 7 0 1 1-1.1 8.8" />
 
                             </svg>
-
                             Restart
 
                         </button>
@@ -332,15 +380,10 @@
                         </button>
 
                         <button id="pause-button" class="control-button control-button--secondary" type="button" disabled>
-
                             <svg viewBox="0 0 20 20" aria-hidden="true">
-
                                 <path d="M7 5v10M13 5v10" />
-
                             </svg>
-
                             Pause
-
                         </button>
 
                     </div>
@@ -356,150 +399,30 @@
                     </div>
 
                     <div class="signal-actions" aria-label="Signal actions">
-                        <button
-                            id="switch-signal-button"
-                            class="control-button control-button--secondary"
-                            type="button"
-                            aria-pressed="false"
-                            disabled
-                        >
-                            Show filtered ECG
-                        </button>
-                        <button
-                            id="view-report-button"
-                            class="control-button control-button--secondary"
-                            type="button"
-                            disabled
-                        >
-                            View report
-                        </button>
-                        <button
-                            id="user-guide-button"
-                            class="control-button control-button--secondary"
-                            type="button"
-                        >
-                            User guide
-                        </button>
+                        <button id="import-ecg-button" class="control-button control-button--secondary" type="button" aria-haspopup="dialog" aria-controls="import-ecg-dialog">Import ECG</button>
+                        <button id="signal-options-button" class="control-button control-button--secondary" type="button" aria-expanded="false" aria-controls="signal-options">More options</button>
+                    </div>
+                    <div id="signal-options" class="signal-options__content" hidden>
+                        <label class="field-group speed-control" for="speed-select">
+                            <span>Speed</span>
+                            <span class="select-wrapper">
+                                <select id="speed-select" name="speed">
+                                    <option value="0.1">0.1&times;</option>
+                                    <option value="0.5">0.5&times;</option>
+                                    <option value="1" selected>1&times;</option>
+                                    <option value="1.5">1.5&times;</option>
+                                    <option value="2">2&times;</option>
+                                </select>
+                            </span>
+                        </label>
+                        <button id="switch-signal-button" class="control-button control-button--secondary" type="button" aria-pressed="false" disabled>Show filtered ECG</button>
+                        <button id="view-report-button" class="control-button control-button--secondary" type="button" disabled>View report</button>
+                        <button id="user-guide-button" class="control-button control-button--secondary" type="button">User guide</button>
                     </div>
                 </div>
 
+                <p id="ecg-import-status" class="import-status" role="status" hidden></p>
             </section>
-
-
-
-            <aside class="side-column" aria-label="Synchronized information">
-
-                <section id="heart-section" class="panel heart-panel" aria-labelledby="heart-title">
-
-                    <div class="panel-header panel-header--compact">
-
-                        <div class="panel-title-group">
-
-                            <span class="section-number">02</span>
-
-                            <div>
-
-                                <p class="eyebrow">Visualization</p>
-
-                                <h2 id="heart-title">3D Heart</h2>
-
-                            </div>
-
-                        </div>
-
-                        <button
-                            id="heart-model-info-button"
-                            class="control-button control-button--secondary heart-model-info-button"
-                            type="button"
-                            aria-haspopup="dialog"
-                            aria-controls="heart-model-info-dialog"
-                        >
-                            <span class="heart-model-info-button__icon" aria-hidden="true">i</span>
-                            Info
-                        </button>
-
-                    </div>
-
-                    <label class="field-group heart-model-picker" for="heart-model-select">
-                        <span>Heart model</span>
-                        <span class="select-wrapper">
-                            <select id="heart-model-select" name="heart-model">
-                                <optgroup label="General anatomy and external views">
-                                    <option value="alternate-beating-heart">External heart (simplified surface)</option>
-                                    <option value="anatomical-heart">Animated anatomical heart (overview)</option>
-                                    <option value="closed-heart">Closed anatomical heart (external view)</option>
-                                    <option value="human-heart">Animated human heart (textured)</option>
-                                    <option value="realistic-heart">Realistic animated heart</option>
-                                </optgroup>
-                                <optgroup label="Internal views and pathology">
-                                    <option value="beating-heart" selected>Morphological heart (internal / cutaway view)</option>
-                                    <option value="open-heart">Open anatomical heart (internal view)</option>
-                                    <option value="mitral-stenosis">Pathological heart (mitral stenosis)</option>
-                                </optgroup>
-                            </select>
-                        </span>
-                    </label>
-
-                    <label class="field-group heart-model-scale" for="heart-model-scale">
-                        <span>3D model size</span>
-                        <span class="heart-model-scale__control">
-                            <input
-                                id="heart-model-scale"
-                                name="heart-model-scale"
-                                type="range"
-                                min="0.5"
-                                max="2"
-                                step="0.1"
-                                value="1"
-                                aria-describedby="heart-model-scale-value"
-                            >
-                            <output id="heart-model-scale-value" for="heart-model-scale">1.0×</output>
-                        </span>
-                    </label>
-
-                    <div id="heart-container" aria-label="Interactive three-dimensional heart viewer"></div>
-
-
-
-                    <div class="phase-readout">
-
-                        <div>
-
-                            <span>Current phase</span>
-
-                            <p id="phase-display" aria-live="polite">Rest</p>
-
-                        </div>
-
-                        <span id="phase-code">—</span>
-
-                    </div>
-
-
-
-                    <p id="phase-description" class="phase-description">
-
-                        Time outside the annotated P, QRS and T intervals.
-
-                    </p>
-
-
-
-                    <div class="phase-legend" aria-label="ECG cycle landmarks">
-
-                        <span class="phase-legend__p">P</span>
-
-                        <span class="phase-legend__qrs">QRS</span>
-
-                        <span class="phase-legend__t">T</span>
-
-                    </div>
-
-                </section>
-
-
-
-            </aside>
 
         </div>
 
@@ -613,10 +536,10 @@
 
                     <li>Select a Record to load an ECG sample.</li>
 
-                    <li>Choose a speed and press Play to start playback.</li>
-                    <li>Use Pause to stop at the current time.</li>
+                    <li>Press Play to start playback and Pause to stop at the current time.</li>
+                    <li>Open More options to change speed or view the report and user guide.</li>
                     <li>Press Restart to return to the beginning.</li>
-                    <li>Use Show filtered ECG to compare the raw and filtered signals.</li>
+                    <li>In More options, use Show filtered ECG to compare the signals.</li>
                     <li>Follow the current P, QRS or T phase during playback.</li>
                 </ul>
 
@@ -698,7 +621,7 @@
 
                     <li>Educational visualization, not a medical diagnostic tool.</li>
 
-                    <li>ECG intervals come from the dataset annotations.</li>
+                    <li>Bundled LUDB records use dataset annotations. Local imports can show estimated intervals.</li>
 
                     <li>The interactive 3D heart can be rotated and zoomed for inspection.</li>
 
@@ -709,6 +632,26 @@
         </section>
     </main>
 
+    <dialog id="import-ecg-dialog" class="import-ecg-dialog" aria-labelledby="import-ecg-title">
+        <div class="report-dialog__header">
+            <h2 id="import-ecg-title">Import an ECG</h2>
+            <button id="close-import-ecg" class="control-button control-button--secondary" type="button">Close</button>
+        </div>
+        <form id="import-ecg-form" class="import-ecg-form">
+            <p>Choose a single-channel CSV or a JSON record. Your file is processed on this device and kept only for this session.</p>
+            <label class="field-group" for="ecg-import-file"><span>ECG file (.csv or .json, up to 10 MB)</span><input id="ecg-import-file" type="file" accept=".csv,.json" required></label>
+            <div id="csv-import-options" class="csv-import-options">
+                <p id="csv-file-summary" class="csv-file-summary" role="status" hidden></p>
+                <label class="field-group" for="ecg-import-fs"><span>Sampling rate (Hz, required)</span><input id="ecg-import-fs" type="number" min="80.01" max="10000" step="any" placeholder="From the recording source" required></label>
+                <details class="csv-advanced"><summary>CSV settings</summary><div class="csv-advanced__fields"><label class="field-group" for="ecg-import-column"><span>Signal column (first = 1, read top to bottom)</span><input id="ecg-import-column" type="number" min="1" step="1" value="1" required></label>
+                <label class="field-group" for="ecg-import-delimiter"><span>Separator</span><select id="ecg-import-delimiter"><option value=",">Comma (,)</option><option value=";">Semicolon (;)</option><option value="tab">Tab</option></select></label>
+                <label class="import-header-option"><input id="ecg-import-header" type="checkbox"> First row is a header</label></div></details>
+            </div>
+            <p class="import-note">QRS use adapted Pan–Tompkins. Omitted P/T phases are estimated from signal morphology when identifiable. These experimental estimates require review; ambiguous waves may remain unannotated. Supplied P/T arrays in JSON, including empty arrays, are preserved. Up to 100,000 samples per file.</p>
+            <p id="ecg-import-error" class="import-error" role="alert" hidden></p>
+            <button id="submit-ecg-import" class="control-button control-button--primary" type="submit">Load ECG</button>
+        </form>
+    </dialog>
     <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-dialog-title">
         <div class="report-dialog__header">
             <h2 id="report-dialog-title">ECG report preview</h2>
@@ -717,6 +660,65 @@
             </button>
         </div>
         <iframe id="report-preview" title="ECG report preview"></iframe>
+    </dialog>
+
+    <dialog id="heart-settings-dialog" class="heart-settings-dialog" aria-labelledby="heart-settings-title">
+        <form method="dialog" class="report-dialog__header">
+            <h2 id="heart-settings-title">3D heart settings</h2>
+            <button class="control-button control-button--secondary" type="submit">Close</button>
+        </form>
+        <div class="heart-settings-content">
+            <label class="field-group heart-model-picker" for="heart-model-select">
+                <span>Heart model</span>
+                <span class="select-wrapper">
+                    <select id="heart-model-select" name="heart-model">
+                        <optgroup label="General anatomy and external views">
+                            <option value="alternate-beating-heart">External heart (simplified surface)</option>
+                            <option value="anatomical-heart">Animated anatomical heart (overview)</option>
+                            <option value="closed-heart">Closed anatomical heart (external view)</option>
+                            <option value="human-heart">Animated human heart (textured)</option>
+                            <option value="realistic-heart">Realistic animated heart</option>
+                        </optgroup>
+                        <optgroup label="Internal views and pathology">
+                            <option value="beating-heart" selected>Morphological heart (internal / cutaway view)</option>
+                            <option value="open-heart">Open anatomical heart (internal view)</option>
+                            <option value="mitral-stenosis">Pathological heart (mitral stenosis)</option>
+                        </optgroup>
+                    </select>
+                </span>
+            </label>
+
+            <label class="field-group heart-model-scale" for="heart-model-scale">
+                <span>3D model size</span>
+                <span class="heart-model-scale__control">
+                    <input
+                        id="heart-model-scale"
+                        name="heart-model-scale"
+                        type="range"
+                        min="0.5"
+                        max="4"
+                        step="0.1"
+                        value="1"
+                        aria-describedby="heart-model-scale-value"
+                    >
+                    <output id="heart-model-scale-value" for="heart-model-scale">1.0×</output>
+                </span>
+            </label>
+
+            <div class="camera-toolbar">
+                <label class="field-group" for="camera-mode">
+                    <span>Camera</span>
+                    <span class="select-wrapper">
+                        <select id="camera-mode" disabled>
+                            <option value="orbit">Orbit around heart</option>
+                            <option value="explore">Free camera</option>
+                        </select>
+                    </span>
+                </label>
+                <button id="reset-camera-button" class="control-button control-button--secondary" type="button" disabled>Reset view</button>
+            </div>
+            <p id="camera-help" class="camera-help">Drag to move the camera around the heart. Scroll or pinch to move closer.</p>
+        </div>
     </dialog>
 
     <dialog id="heart-model-info-dialog" class="heart-model-info-dialog" aria-labelledby="heart-model-info-title">
@@ -752,7 +754,6 @@
             >
                 View source on Sketchfab
             </a>
-            <p class="guide-note">Please credit the author and respect the license terms when sharing the model.</p>
         </div>
     </dialog>
 
@@ -779,18 +780,20 @@
                 <p class="eyebrow">Quick start</p>
                 <h3 id="guide-use-title">Explore a recording</h3>
                 <ol class="guide-steps">
-                    <li><strong>Choose a record and heart model.</strong> The selectors load an ECG and one of the available animated heart models.</li>
-                    <li><strong>Play the cycle.</strong> Use Play, Pause, Restart, or choose a playback speed.</li>
+                    <li><strong>Choose a record and heart model.</strong> Use the previous/next arrows to move through records, or Import ECG to load your own CSV or JSON file. The selectors load an ECG and one of the available animated heart models.</li>
+                    <li><strong>Inspect the heart.</strong> Open Settings to choose a heart model, adjust its size and select a camera. Choose Orbit around heart to circle the stationary model, or Free camera to move and look independently. In Free camera, drag to look around, right-drag to move sideways, or use two fingers to pan/pinch. Focus the viewer and use W/S to move forward/back, A/D sideways and Q/E down/up. Reset view returns to the initial framing. The model size slider ranges from 0.5× to 4×.</li>
+                    <li><strong>Play the cycle.</strong> Use Restart, Play and Pause. Open More options to change speed, switch the signal, open the report or read this guide.</li>
                     <li><strong>Inspect and position the timeline.</strong> Scroll over the ECG to zoom around the pointer, drag a zoomed trace to pan, or use the −, Reset and + controls. Click the trace to move the playback cursor to that moment; use Play to resume with the heart synchronized to the selected time.</li>
                     <li><strong>Compare signals.</strong> Use Show filtered ECG to switch between the recorded and filtered traces.</li>
                     <li><strong>Read the report.</strong> View report opens the signal comparison, filter settings, and P-onset-to-QRS-peak measurements. Use Print / Save as PDF to export it.</li>
                 </ol>
-                <p class="guide-note">The shaded P, QRS and T regions come from the dataset annotations. The selected animated model follows the ECG timeline, while filtered QRS amplitude above the local baseline noise modulates the visual strength of each beat. Without valid QRS activity the model remains in its reference pose. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
+                <p class="guide-note">The shaded P, QRS and T regions come from supplied annotations or experimental estimates for imported signals. The selected animated model follows the ECG timeline, while filtered QRS amplitude above the local baseline noise modulates the visual strength of each beat. Without valid QRS activity the model remains in its reference pose. This educational effect is not a direct measurement of mechanical cardiac contractility and is not a medical diagnostic tool.</p>
             </section>
             <section id="guide-page-data" class="guide-page" aria-labelledby="guide-data-title" hidden>
                 <p class="eyebrow">Data workflow</p>
                 <h3 id="guide-data-title">Add a new ECG recording</h3>
-                <p class="guide-development-notice"><strong>Universal ECG import:</strong> Work in progress.</p>
+                <p class="guide-development-notice"><strong>Universal ECG import:</strong> Import a CSV or JSON file directly from your device.</p>
+                <p class="guide-note">Use Import ECG for a local file: choose the sampling rate, signal column, separator and header setting for CSV. JSON files can include existing annotations. Missing QRS are estimated. Omitted P/T keys are completed experimentally when the signal is identifiable; supplied P/T arrays, including empty arrays, are preserved. Local imports disappear when the page is reloaded. The steps below describe adding records permanently to the bundled dataset.</p>
                 <ol class="guide-steps">
                     <li><strong>Prepare the signal.</strong> Use a single, evenly sampled ECG channel and keep its sampling rate in Hz. The current 0.5–40 Hz filter needs a sampling rate above 80 Hz and more than 27 samples.</li>
                     <li><strong>Annotate the waves.</strong> Provide P, QRS and T intervals as start/end times in seconds, measured from the beginning of the recording.</li>
@@ -800,6 +803,7 @@
                 </ol>
                 <details class="guide-data-example">
                     <summary>Click for more details — JSON example</summary>
+                    <p>This short example illustrates the structure. An imported signal needs at least 28 numeric samples.</p>
                     <pre><code>{
   "label": "Example ECG",
   "fs": 500,
@@ -812,7 +816,7 @@
 }</code></pre>
                     <p>See the <a href="data/ludb/records/record-1.json" target="_blank" rel="noopener noreferrer">reference ECG record</a> for a complete example in the format used by the application.</p>
                 </details>
-                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data; it is not a general importer for other dataset formats. Convert other datasets to the same JSON structure first, and check their usage terms and privacy requirements. The site currently reads local JSON files; it does not upload data.</p>
+                <p class="guide-note"><code>signal-processing/export_ludb_for_web.py</code> exports the project's LUDB source data. Convert other datasets to the same JSON structure before registering them, and check their usage terms and privacy requirements. The Import ECG button reads CSV and JSON files on your device.</p>
             </section>
             <section id="guide-page-credits" class="guide-page" aria-labelledby="guide-credits-title" hidden>
                 <p class="eyebrow">Attribution</p>
@@ -856,9 +860,12 @@
 
     </script>
 
-    <script src="js/main.js?v=20261116-qrs-activity"></script>
+    <script src="js/qrs-detection.js?v=20261119"></script>
+    <script src="js/pt-wave-detection.js?v=20261125-p2"></script>
+    <script src="js/ecg-import.js?v=20261125-csv-validation"></script>
+    <script src="js/main.js?v=20261125-ecg-source"></script>
 
-    <script type="module" src="js/heart3d.js?v=20261119-dark-english"></script>
+    <script type="module" src="js/heart3d.js?v=20261121-heart-view"></script>
 
 </body>
 
